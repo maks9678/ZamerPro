@@ -37,29 +37,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.example.zamerpro.ItemDimension
 import java.util.UUID
 import kotlin.collections.forEachIndexed
-data class ItemDimension(
-    var id: String = UUID.randomUUID().toString(),
-    var width: String = "",
-    var height: String = ""
-)
 
-@Preview(showBackground = true)
-@Composable
-fun RoomInputScreenPreview() { // Переименовал превью для ясности
-    MaterialTheme {
-        RoomInputScreen(
-            // navController = rememberNavController() // Пример для превью
-        )
-    }
-}
+const val ROOM_INPUT_ROUTE = "roomInput"
+// Ключ для возврата результата
+const val NEW_ROOM_RESULT_KEY = "new_room_details"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomInputScreen(
     modifier: Modifier = Modifier,
     viewModel: RoomViewModel = viewModel(),
+    navController: NavController,
     // navController: NavController // Передайте сюда ваш NavController
 ) {
     val roomName by viewModel.roomName.collectAsState()
@@ -206,13 +198,9 @@ fun RoomInputScreen(
                     onClick = {
                         val simpleRoom = viewModel.calculateAndGetSimpleRoom()
                         if (simpleRoom != null) {
-                            // ВАЖНО: Эту часть нужно будет раскомментировать и адаптировать,
-                            // когда у вас будет настроен NavController
-                            // navController.previousBackStackEntry?.savedStateHandle?.set("new_room_details", simpleRoom)
-                            // viewModel.resetAllFields()
-                            // navController.popBackStack()
-
-                            // Пока что для отладки:
+                            navController.previousBackStackEntry?.savedStateHandle?.set("new_room_details", simpleRoom)
+                            viewModel.resetAllFields()
+                           navController.popBackStack()
                             println("LOG: Room to be saved: $simpleRoom")
                             viewModel.resetAllFields() // Сбрасываем поля для теста
                         } else {
@@ -221,7 +209,7 @@ fun RoomInputScreen(
                             println("LOG: Validation failed for room save.")
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(0.95f)
+                    modifier = Modifier.fillMaxWidth(0.9f)
                 ) {
                     Icon(Icons.Filled.Done, contentDescription = "Сохранить комнату")
                     Spacer(Modifier.size(ButtonDefaults.IconSpacing))

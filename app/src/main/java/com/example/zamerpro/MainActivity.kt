@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
                         composable(ROOM_INPUT_ROUTE) {
                             RoomInputScreen(navController = navController)
                         }
-                        // Другие ваши экраны, если есть
+                        composable()
                     }
                 }
             }

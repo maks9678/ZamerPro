@@ -1,5 +1,6 @@
 package com.example.zamerpro.room
 
+import android.widget.Button
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -198,22 +199,22 @@ fun RoomInputScreen(
                     onClick = {
                         val simpleRoom = viewModel.calculateAndGetSimpleRoom()
                         if (simpleRoom != null) {
-                            navController.previousBackStackEntry?.savedStateHandle?.set("new_room_details", simpleRoom)
+                            // ЛОГ 1: Проверяем, что simpleRoom создается и какой он
+                            println("LOG_INPUT_SCREEN: Attempting to save room: $simpleRoom")
+                            navController.previousBackStackEntry?.savedStateHandle?.set(NEW_ROOM_RESULT_KEY, simpleRoom) // Используйте ваш ключ
                             viewModel.resetAllFields()
-                           navController.popBackStack()
-                            println("LOG: Room to be saved: $simpleRoom")
-                            viewModel.resetAllFields() // Сбрасываем поля для теста
+                            navController.popBackStack()
+                            // viewModel.resetAllFields() // Этот вызов уже есть выше, можно убрать дублирование
                         } else {
-                            // Логика отображения ошибки (например, через Snackbar или Toast)
-                            // showValidationError = true
-                            println("LOG: Validation failed for room save.")
+                            println("LOG_INPUT_SCREEN: Validation failed for room save. Width or Length might be invalid.")
                         }
                     },
                     modifier = Modifier.fillMaxWidth(0.9f)
                 ) {
                     Icon(Icons.Filled.Done, contentDescription = "Сохранить комнату")
                     Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                    Text("Сохранить и добавить в дом")
+                    Text (
+                        "Сохранить и добавить в дом")
                 }
                 Spacer(modifier = Modifier.height(16.dp)) // Отступ после кнопки
             }

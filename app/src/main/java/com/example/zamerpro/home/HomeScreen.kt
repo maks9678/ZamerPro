@@ -61,6 +61,8 @@ fun HouseScreen(
 
     val roomsInHouse by viewModel.roomsInHouse.collectAsState()
     val totalArea by viewModel.totalArea.collectAsState()
+    val totalPerimeter by viewModel.totalPerimeter.collectAsState() // Если вы его используете
+
     val newRoomResult = navController.currentBackStackEntry
         ?.savedStateHandle
         ?.getLiveData<SimpleRoom>(NEW_ROOM_RESULT_KEY)?.observeAsState()
@@ -87,7 +89,17 @@ fun HouseScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            items(roomsInHouse, key = { room -> room.id }) { roomData ->
+                // ЛОГ 3: Проверяем, какие комнаты передаются в RoomInHouseItem
+                // Этот лог будет вызываться для каждой комнаты в списке, будьте осторожны, если комнат много
+                // println("LOG_HOUSE_SCREEN_LAZYCOLUMN: Displaying room: ${roomData.name}")
+                RoomInHouseItem(
+                    room = roomData,
+                    onRemoveClick = { viewModel.removeRoom(roomData) }
+                )
+            }
             item {
+
                 Button(
                     onClick = {
                         navController.navigate(ROOM_INPUT_ROUTE) // Навигация на RoomInputScreen
@@ -120,6 +132,19 @@ fun HouseScreen(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(top = 4.dp)
                         )
+                        val totalPerimeter by viewModel.totalPerimeter.collectAsState() // Получаем из ViewModel
+                        if (totalPerimeter > 0) { // Показываем, только если есть комнаты
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Общий периметр комнат:", // Или "Общий метраж комнат:"
+                                style = MaterialTheme.typography.titleMedium // Чуть меньше, чем площадь
+                            )
+                            Text(
+                                text = "${String.format("%.2f", totalPerimeter)} м",
+                                style = MaterialTheme.typography.headlineSmall, // Чуть меньше, чем площадь
+                                color = MaterialTheme.colorScheme.secondary // Другой цвет для акцента
+                            )
+                        }
                     }
                 }
             }
@@ -131,12 +156,20 @@ fun HouseScreen(
                         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
                 }
-            }
-            items(roomsInHouse, key = { room -> room.id }) { room ->
-                RoomInHouseItem(
-                    room = room,
-                    onRemoveClick = { viewModel.removeRoom(room) }
-                )
+                // Вот эта часть отвечает за отображение каждой комнаты
+                items(roomsInHouse, key = { room -> room.id }) { roomData ->
+                    RoomInHouseItem( // Используем roomData, чтобы не конфликтовать с room из LaunchedEffect
+                        room = roomData,
+                        onRemoveClick = { viewModel.removeRoom(roomData) }
+                    )
+                }
+            } else {
+                item {
+                    Text(
+                        text = "Пока нет добавленных комнат.",
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                }
             }
         }
     }

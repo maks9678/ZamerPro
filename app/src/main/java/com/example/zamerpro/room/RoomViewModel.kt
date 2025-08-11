@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.update
 class RoomViewModel : ViewModel() {
 
     // --- Название комнаты ---
-    private val _roomName = MutableStateFlow("")
+    private val _roomName = MutableStateFlow("комната")
     val roomName: StateFlow<String> = _roomName.asStateFlow()
 
     fun updateRoomName(newName: String) {
@@ -137,11 +137,13 @@ class RoomViewModel : ViewModel() {
         val length = _roomLength.value.toDoubleOrNull()
 
         if (name.isEmpty() || width == null || width <= 0 || length == null || length <= 0) {
-            return null // Некорректные данные
+            return null
         }
 
         val area = width * length
-        return SimpleRoom(name = name, area = area)
+        val perimeter = if (width > 0 && length > 0) (width + length) * 2 else 0.0 // Расчет периметра
+
+        return SimpleRoom(name = name, area = area, perimeter = perimeter) // id сгенерируется по умолчанию
     }
 
     /**

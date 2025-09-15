@@ -51,9 +51,9 @@ const val NEW_ROOM_RESULT_KEY = "new_room_details"
 @Composable
 fun RoomInputScreen(
     modifier: Modifier = Modifier,
+    houseId: String,
     viewModel: RoomViewModel = viewModel(),
     navController: NavController,
-    // navController: NavController // Передайте сюда ваш NavController
 ) {
     val roomName by viewModel.roomName.collectAsState()
     val roomHeight by viewModel.roomHeight.collectAsState()
@@ -63,48 +63,7 @@ fun RoomInputScreen(
     val windows by viewModel.windows.collectAsState()
     val customWalls by viewModel.customWalls.collectAsState()
 
-    // Состояние для отображения Snackbar об ошибке (опционально)
-    // val snackbarHostState = remember { SnackbarHostState() }
-    // var showValidationError by remember { mutableStateOf(false) }
-
-    /*
-    if (showValidationError) {
-        LaunchedEffect(snackbarHostState) {
-            snackbarHostState.showSnackbar(
-                message = "Ошибка: Проверьте правильность введенных данных (название, ширина, длина).",
-                duration = SnackbarDuration.Short
-            )
-            showValidationError = false // Сбросить флаг после показа
-        }
-    }
-    */
-
-    Scaffold(
-        /* bottomBar = { // Можно разместить кнопку "Сохранить" внизу экрана
-            Button(
-                onClick = {
-                    val simpleRoom = viewModel.calculateAndGetSimpleRoom()
-                    if (simpleRoom != null) {
-                        // navController.previousBackStackEntry?.savedStateHandle?.set("new_room_details", simpleRoom)
-                        // viewModel.resetAllFields()
-                        // navController.popBackStack()
-                        // println("Room saved: $simpleRoom") // Для отладки
-                    } else {
-                        // showValidationError = true
-                        // println("Validation failed") // Для отладки
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Icon(Icons.Filled.Done, contentDescription = "Сохранить комнату")
-                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                Text("Сохранить комнату")
-            }
-        }, */
-        // snackbarHost = { SnackbarHost(snackbarHostState) } // Для отображения сообщений
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
@@ -197,16 +156,15 @@ fun RoomInputScreen(
                 Spacer(modifier = Modifier.height(8.dp)) // Отступ перед кнопкой
                 Button(
                     onClick = {
-                        val simpleRoom = viewModel.calculateAndGetSimpleRoom()
-                        if (simpleRoom != null) {
-                            // ЛОГ 1: Проверяем, что simpleRoom создается и какой он
-                            println("LOG_INPUT_SCREEN: Attempting to save room: $simpleRoom")
-                            navController.previousBackStackEntry?.savedStateHandle?.set(NEW_ROOM_RESULT_KEY, simpleRoom) // Используйте ваш ключ
+                        val simpleRoomNoHouseId = viewModel.calculateAndGetSimpleRoom() // Не содержит houseId
+                        if (simpleRoomNoHouseId != null) {
+                            // Передаем объект без houseId. HouseViewModel сам его подставит.
+                            navController.previousBackStackEntry?.savedStateHandle?.set(NEW_ROOM_RESULT_KEY, simpleRoomNoHouseId)
                             viewModel.resetAllFields()
                             navController.popBackStack()
-                            // viewModel.resetAllFields() // Этот вызов уже есть выше, можно убрать дублирование
+                            println("LOG_ROOM_INPUT: Room to be saved (without houseId yet): $simpleRoomNoHouseId")
                         } else {
-                            println("LOG_INPUT_SCREEN: Validation failed for room save. Width or Length might be invalid.")
+                            println("LOG_ROOM_INPUT: Validation failed for room save.")
                         }
                     },
                     modifier = Modifier.fillMaxWidth(0.9f)

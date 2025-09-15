@@ -27,12 +27,6 @@ class Material(
     val extraMaterial:Int,
 
 )
-@Parcelize // Аннотация для автоматической реализации Parcelable
-data class SimpleRoom(
-    val id: String = UUID.randomUUID().toString(),
-    val name: String,
-    val area: Double
-) : Parcelable // Реализуем Parcelable
 
 @Parcelize
 data class ItemDimension(

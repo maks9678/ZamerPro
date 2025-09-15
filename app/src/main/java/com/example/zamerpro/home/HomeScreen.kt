@@ -1,5 +1,6 @@
 package com.example.zamerpro.home
 
+import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,11 +35,13 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.zamerpro.SimpleRoom
 import com.example.zamerpro.room.NEW_ROOM_RESULT_KEY
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 
@@ -47,22 +50,20 @@ const val HOUSE_SCREEN_ROUTE = "houseScreen"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HouseScreen(
-    modifier: Modifier = Modifier,
     navController: NavController,
-    viewModel: HouseViewModel = viewModel(), // Получаем экземпляр ViewModel
+    houseId:String,
 ) {
-    // Собираем состояния из ViewModel
-    // Для лучшей практики с жизненным циклом используйте collectAsStateWithLifecycle
-    // import androidx.lifecycle.compose.collectAsStateWithLifecycle
-    // val newRoomName by viewModel.newRoomName.collectAsStateWithLifecycle()
-    // val newRoomAreaString by viewModel.newRoomAreaString.collectAsStateWithLifecycle()
-    // val roomsInHouse by viewModel.roomsInHouse.collectAsStateWithLifecycle()
-    // val totalArea by viewModel.totalArea.collectAsStateWithLifecycle()
+    val application = LocalContext.current.applicationContext as Application
+    val viewModel: HouseViewModel = viewModel(
+        factory = HouseViewModel.HouseViewModelFactory(application, houseId)
+    )
 
+    val currentHouse by viewModel.currentHouse.collectAsState()
     val roomsInHouse by viewModel.roomsInHouse.collectAsState()
     val totalArea by viewModel.totalArea.collectAsState()
-    val totalPerimeter by viewModel.totalPerimeter.collectAsState() // Если вы его используете
+    val totalPerimeter by viewModel.totalPerimeter.collectAsState()
 
+    // Получение результата от RoomInputScreen
     val newRoomResult = navController.currentBackStackEntry
         ?.savedStateHandle
         ?.getLiveData<SimpleRoom>(NEW_ROOM_RESULT_KEY)?.observeAsState()
@@ -70,7 +71,6 @@ fun HouseScreen(
     LaunchedEffect(newRoomResult?.value) {
         newRoomResult?.value?.let { room ->
             viewModel.addRoom(room)
-            // Очищаем результат, чтобы он не добавлялся повторно при recomposition или возврате на экран
             navController.currentBackStackEntry?.savedStateHandle?.remove<SimpleRoom>(NEW_ROOM_RESULT_KEY)
         }
     }
@@ -81,7 +81,7 @@ fun HouseScreen(
         }
     ) { paddingValues ->
         LazyColumn(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
@@ -90,9 +90,6 @@ fun HouseScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(roomsInHouse, key = { room -> room.id }) { roomData ->
-                // ЛОГ 3: Проверяем, какие комнаты передаются в RoomInHouseItem
-                // Этот лог будет вызываться для каждой комнаты в списке, будьте осторожны, если комнат много
-                // println("LOG_HOUSE_SCREEN_LAZYCOLUMN: Displaying room: ${roomData.name}")
                 RoomInHouseItem(
                     room = roomData,
                     onRemoveClick = { viewModel.removeRoom(roomData) }
@@ -178,7 +175,8 @@ fun HouseScreen(
 @Composable
 fun HouseScreenPreview() {
     MaterialTheme {
-        HouseScreen(navController = rememberNavController(), viewModel = viewModel())
+        HouseScreen(navController = rememberNavController(),
+            houseId = "preview_house_id_123")
     }
 }
 @Composable

@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.example.zamerpro"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.zamerpro"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -42,7 +42,8 @@ android {
 }
 
 dependencies {
-    val room_version = "2.6.1" // Используйте актуальную версию
+    implementation(libs.core.ktx)
+    val room_version = "2.8.0" // Используйте актуальную версию
     implementation ("androidx.room:room-runtime:$room_version")
     kapt ("androidx.room:room-compiler:$room_version")
     implementation ("androidx.room:room-ktx:$room_version")

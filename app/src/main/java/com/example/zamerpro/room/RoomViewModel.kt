@@ -2,13 +2,13 @@ package com.example.zamerpro.room
 
 import androidx.lifecycle.ViewModel
 import com.example.zamerpro.ItemDimension
-import com.example.zamerpro.home.SimpleRoom
+import com.example.zamerpro.SimpleRoom
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-class RoomViewModel : ViewModel() {
+class RoomViewModel(private val currentHouseId: String) : ViewModel() {
 
     // --- Название комнаты ---
     private val _roomName = MutableStateFlow("комната")
@@ -143,7 +143,7 @@ class RoomViewModel : ViewModel() {
         val area = width * length
         val perimeter = if (width > 0 && length > 0) (width + length) * 2 else 0.0 // Расчет периметра
 
-        return SimpleRoom(name = name, area = area, perimeter = perimeter) // id сгенерируется по умолчанию
+        return SimpleRoom(name = name, houseId =currentHouseId, area = area, perimeter = perimeter) // id сгенерируется по умолчанию
     }
 
     /**

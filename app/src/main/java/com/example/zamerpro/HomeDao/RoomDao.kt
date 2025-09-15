@@ -1,5 +1,6 @@
 package com.example.zamerpro.HomeDao
 
+import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -7,20 +8,17 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.zamerpro.SimpleRoom
 import kotlinx.coroutines.flow.Flow
-
+@Dao
 interface RoomDao {
-    @Insert(onConflict= OnConflictStrategy.REPLACE)
-    suspend fun insertRoom(room:SimpleRoom)
+    @Query("SELECT * FROM rooms WHERE houseId = :houseId")
+    fun getRoomsForHouseFlow(houseId: String): Flow<List<SimpleRoom>> // Для наблюдения
 
-    @Update
-    suspend fun updateRoom(room:SimpleRoom)
+    @Query("SELECT * FROM rooms WHERE houseId = :houseId")
+    suspend fun getRoomsForHouseSuspend(houseId: String): List<SimpleRoom> // Для однократного получения
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRoom(room: SimpleRoom)
 
     @Delete
-    suspend fun deleteRoom(room:SimpleRoom)
-
-    @Query("SELECT * FROM rooms WHERE id = :roomId")
-    fun getRoomsForHouse(houseId:String):Flow<List<SimpleRoom>>
-
-    @Query("SELECT * FROM rooms WHERE id= :roomId")
-    fun getRoomById(roomId:String):Flow<SimpleRoom?>
+    suspend fun deleteRoom(room: SimpleRoom)
 }

@@ -10,22 +10,15 @@ import java.util.UUID
 data class House(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val name: String,
-    val lastModified: Long = System.currentTimeMillis())
-
-
-@Entity(
-    tableName = "rooms",
-    foreignKeys = [ForeignKey(
-        entity = House::class,
-        parentColumns = ["id"],
-        childColumns = ["houseId"],
-        onDelete = ForeignKey.CASCADE
-    )],
-    indices = [Index(value = ["houseId"])] // Индекс для быстрого поиска комнат по дому
+    val lastModified: Long = System.currentTimeMillis(),
+    val totalArea: Double = 0.0, // Новое поле для общей площади дома
+    val totalPerimeter: Double = 0.0 // Новое поле для общего метража (периметра) дома
 )
+@Entity(tableName = "rooms")
 data class SimpleRoom(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val houseId: String, // Внешний ключ для связи с House
+    @PrimaryKey (autoGenerate = true)
+    val id: Int = 0,
+    val houseId: String ,
     val name: String,
     val area: Double,
     val perimeter: Double = 0.0

@@ -226,7 +226,54 @@ fun HouseScreenInternal(
         }
     }
 }
-
+@Composable
+fun RoomInHouseItem(
+    room: SimpleRoom,
+    onRemoveClick: () -> Unit,
+    modifier: Modifier = Modifier // Позволяет передавать модификаторы извне
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth(0.95f) // Занимает почти всю ширину с небольшими отступами по бокам
+            .padding(vertical = 4.dp), // Небольшой вертикальный отступ между карточками комнат
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp), // Внутренние отступы в карточке
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween // Размещает имя/площадь слева, кнопку справа
+        ) {
+            Column(modifier = Modifier.weight(1f)) { // Позволяет тексту занимать доступное пространство
+                Text(
+                    text = room.name,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Площадь: ${String.format("%.2f", room.area)} м²",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant // Используйте цвета из темы
+                )
+                // Если у комнаты есть и периметр, и вы хотите его показать:
+                if (room.perimeter > 0) {
+                    Text(
+                        text = "Периметр: ${String.format("%.2f", room.perimeter)} м",
+                        style = MaterialTheme.typography.bodySmall, // Меньший стиль для доп. информации
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            IconButton(onClick = onRemoveClick) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = "Удалить комнату ${room.name}", // Более описательный contentDescription
+                    tint = MaterialTheme.colorScheme.error // Цвет ошибки для кнопки удаления
+                )
+            }
+        }
+    }
+}
 
 @Preview(showBackground = true, name = "HouseScreen пустой")
 @Composable

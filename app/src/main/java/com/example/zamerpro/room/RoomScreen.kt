@@ -37,8 +37,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.zamerpro.ItemDimension
 import java.util.UUID
 import kotlin.collections.forEachIndexed
@@ -47,12 +50,62 @@ const val ROOM_INPUT_ROUTE = "roomInput"
 // Ключ для возврата результата
 const val NEW_ROOM_RESULT_KEY = "new_room_details"
 
+@Preview(showBackground = true, name = "RoomInputScreen (Простое Превью)")
+@Composable
+fun RoomInputScreenSimplePreview() {
+    MaterialTheme {
+
+        val previewViewModel = RoomViewModel(currentHouseId = "preview_house_id")
+
+        val previewHouseId = "preview_house_123"
+        val viewModelForPreview: RoomViewModel = viewModel(
+            factory = RoomViewModelFactory(previewHouseId)
+        )
+
+        viewModelForPreview.updateRoomName("Гостиная (Превью)")
+        viewModelForPreview.updateRoomHeight("2.75")
+        viewModelForPreview.updateRoomWidth("4.8")
+        viewModelForPreview.updateRoomLength("5.2")
+
+        RoomInputScreen(
+            houseId = previewHouseId, // Передаем houseId, как и в реальном вызове
+            viewModel = viewModelForPreview, // Передаем настроенный ViewModel
+            navController = rememberNavController() // Моковый NavController
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "RoomInputScreen (Пустое Простое Превью)")
+@Composable
+fun RoomInputScreenEmptySimplePreview() {
+    MaterialTheme {
+        val previewHouseId = "preview_empty_house_123"
+        val viewModelForPreview: RoomViewModel = viewModel(
+            factory = RoomViewModelFactory(previewHouseId)
+        )
+
+        RoomInputScreen(
+            houseId = previewHouseId,
+            viewModel = viewModelForPreview,
+            navController = rememberNavController()
+        )
+    }
+}
+class RoomViewModelFactory(private val houseId: String) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RoomViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return RoomViewModel(houseId) as T // Передаем houseId в конструктор
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomInputScreen(
     modifier: Modifier = Modifier,
     houseId: String,
-    viewModel: RoomViewModel = viewModel(),
+    viewModel: RoomViewModel = viewModel(factory = RoomViewModelFactory(houseId)),
     navController: NavController,
 ) {
     val roomName by viewModel.roomName.collectAsState()

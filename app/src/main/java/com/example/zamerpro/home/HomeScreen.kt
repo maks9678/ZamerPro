@@ -41,17 +41,49 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.zamerpro.House
 import com.example.zamerpro.SimpleRoom
 import com.example.zamerpro.room.NEW_ROOM_RESULT_KEY
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 
 const val HOUSE_SCREEN_ROUTE = "houseScreen"
 
+val previewRooms = listOf(
+    SimpleRoom(id = 1, houseId = "preview_house_id_123", name = "Гостиная (Превью)", area = 25.5, perimeter = 22.0),
+    SimpleRoom(id = 2, houseId = "preview_house_id_123", name = "Кухня (Превью)", area = 12.0, perimeter = 14.0)
+)
+val previewHouse = House(id = "preview_house_id_123", name = "Дом для Превью")
+
+@Preview(showBackground = true, name = "HouseScreen с данными")
+@Composable
+fun HouseScreenWithDataPreview() {
+    MaterialTheme {
+        // Упрощенная версия HouseScreen или версия, принимающая данные напрямую
+        // Вместо того чтобы создавать полноценный ViewModel, который лезет в БД,
+        // мы можем передать данные напрямую в Composable для превью.
+        // Для этого нужно будет немного изменить HouseScreen, чтобы он мог принимать
+        // список комнат и дом как параметры (с дефолтными значениями, получаемыми из ViewModel).
+
+        // Вариант А: Модифицировать HouseScreen (показан ниже)
+        HouseScreenInternal( // Назовем внутренний Composable иначе
+            navController = rememberNavController(),
+            currentHouse = previewHouse,
+            roomsInHouse = previewRooms,
+            totalArea = previewRooms.sumOf { it.area },
+            totalPerimeter = previewRooms.sumOf { it.perimeter },
+            onAddRoomClicked = { /* TODO для превью */ },
+            onRemoveRoomClicked = { /* TODO для превью */ }
+        )
+    }
+}
+
+// Модифицируем HouseScreen, чтобы основная логика UI была в отдельной функции,
+// принимающей все необходимые состояния и коллбэки.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HouseScreen(
+fun HouseScreen( // Эта функция остается для реальной работы с ViewModel
     navController: NavController,
-    houseId:String,
+    houseId: String,
 ) {
     val application = LocalContext.current.applicationContext as Application
     val viewModel: HouseViewModel = viewModel(
@@ -63,25 +95,53 @@ fun HouseScreen(
     val totalArea by viewModel.totalArea.collectAsState()
     val totalPerimeter by viewModel.totalPerimeter.collectAsState()
 
-    // Получение результата от RoomInputScreen
     val newRoomResult = navController.currentBackStackEntry
         ?.savedStateHandle
         ?.getLiveData<SimpleRoom>(NEW_ROOM_RESULT_KEY)?.observeAsState()
 
     LaunchedEffect(newRoomResult?.value) {
         newRoomResult?.value?.let { room ->
-            viewModel.addRoom(room)
+            viewModel.addRoom(room) // room здесь без houseId
             navController.currentBackStackEntry?.savedStateHandle?.remove<SimpleRoom>(NEW_ROOM_RESULT_KEY)
         }
     }
 
+    HouseScreenInternal(
+        navController = navController,
+        currentHouse = currentHouse,
+        roomsInHouse = roomsInHouse,
+        totalArea = totalArea,
+        totalPerimeter = totalPerimeter,
+        onAddRoomClicked = {
+            // navController.navigate(ROOM_INPUT_ROUTE) // было
+            navController.navigate("$ROOM_INPUT_ROUTE/$houseId") // Передаем houseId
+        },
+        onRemoveRoomClicked = { room ->
+            viewModel.removeRoom(room)
+        }
+    )
+}
+
+// Внутренний Composable, который отвечает только за UI
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HouseScreenInternal(
+    navController: NavController, // NavController все еще может быть нужен для навигации с кнопок
+    currentHouse: House?,
+    roomsInHouse: List<SimpleRoom>,
+    totalArea: Double,
+    totalPerimeter: Double,
+    onAddRoomClicked: () -> Unit,
+    onRemoveRoomClicked: (SimpleRoom) -> Unit,
+    modifier: Modifier = Modifier // Добавим modifier
+) {
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Мой Дом") })
+            TopAppBar(title = { Text(currentHouse?.name ?: "Мой Дом") }) // Используем имя дома
         }
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
+            modifier = modifier // Используем переданный modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
@@ -89,18 +149,10 @@ fun HouseScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(roomsInHouse, key = { room -> room.id }) { roomData ->
-                RoomInHouseItem(
-                    room = roomData,
-                    onRemoveClick = { viewModel.removeRoom(roomData) }
-                )
-            }
+            // Кнопка "Добавить новую комнату"
             item {
-
                 Button(
-                    onClick = {
-                        navController.navigate(ROOM_INPUT_ROUTE) // Навигация на RoomInputScreen
-                    },
+                    onClick = onAddRoomClicked, // Используем коллбэк
                     modifier = Modifier
                         .fillMaxWidth(0.95f)
                         .padding(vertical = 8.dp)
@@ -110,6 +162,8 @@ fun HouseScreen(
                     Text("Добавить новую комнату")
                 }
             }
+
+            // Карточка с общей информацией
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(0.95f),
@@ -129,22 +183,24 @@ fun HouseScreen(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(top = 4.dp)
                         )
-                        val totalPerimeter by viewModel.totalPerimeter.collectAsState() // Получаем из ViewModel
-                        if (totalPerimeter > 0) { // Показываем, только если есть комнаты
+                        // val totalPerimeter by viewModel.totalPerimeter.collectAsState() - Убираем, т.к. получаем как параметр
+                        if (totalPerimeter > 0) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Общий периметр комнат:", // Или "Общий метраж комнат:"
-                                style = MaterialTheme.typography.titleMedium // Чуть меньше, чем площадь
+                                text = "Общий периметр комнат:",
+                                style = MaterialTheme.typography.titleMedium
                             )
                             Text(
                                 text = "${String.format("%.2f", totalPerimeter)} м",
-                                style = MaterialTheme.typography.headlineSmall, // Чуть меньше, чем площадь
-                                color = MaterialTheme.colorScheme.secondary // Другой цвет для акцента
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }
                 }
             }
+
+            // Список комнат
             if (roomsInHouse.isNotEmpty()) {
                 item {
                     Text(
@@ -153,11 +209,10 @@ fun HouseScreen(
                         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
                 }
-                // Вот эта часть отвечает за отображение каждой комнаты
                 items(roomsInHouse, key = { room -> room.id }) { roomData ->
-                    RoomInHouseItem( // Используем roomData, чтобы не конфликтовать с room из LaunchedEffect
+                    RoomInHouseItem(
                         room = roomData,
-                        onRemoveClick = { viewModel.removeRoom(roomData) }
+                        onRemoveClick = { onRemoveRoomClicked(roomData) } // Используем коллбэк
                     )
                 }
             } else {
@@ -171,44 +226,20 @@ fun HouseScreen(
         }
     }
 }
-@Preview(showBackground = true)
+
+
+@Preview(showBackground = true, name = "HouseScreen пустой")
 @Composable
-fun HouseScreenPreview() {
+fun HouseScreenEmptyPreview() {
     MaterialTheme {
-        HouseScreen(navController = rememberNavController(),
-            houseId = "preview_house_id_123")
-    }
-}
-@Composable
-fun RoomInHouseItem(
-    room: SimpleRoom,
-    onRemoveClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth(0.95f)
-            .padding(vertical = 4.dp), // Небольшой отступ между карточками комнат
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = room.name, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = "Площадь: ${String.format("%.2f", room.area)} м²",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray // MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = onRemoveClick) {
-                Icon(Icons.Filled.Delete, contentDescription = "Удалить комнату", tint = MaterialTheme.colorScheme.error)
-            }
-        }
+        HouseScreenInternal(
+            navController = rememberNavController(),
+            currentHouse = previewHouse.copy(name = "Пустой Дом (Превью)"),
+            roomsInHouse = emptyList(),
+            totalArea = 0.0,
+            totalPerimeter = 0.0,
+            onAddRoomClicked = {},
+            onRemoveRoomClicked = {}
+        )
     }
 }

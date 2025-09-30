@@ -25,24 +25,22 @@ class HouseViewModel(
     private val currentHouseId: String
 ) : ViewModel() {
 
-    // Переименовываем обратно или предоставляем алиасы, ожидаемые HouseScreen
-    val currentHouse: StateFlow<House?> // Вместо houseDetails
-    // roomsInHouse уже совпадает
+    val currentHouse: StateFlow<House?>
     val roomsInHouse: StateFlow<List<SimpleRoom>>
-    val totalArea: StateFlow<Double> // Вместо uiTotalArea
-    val totalPerimeter: StateFlow<Double> // Вместо uiTotalPerimeter
+    val totalArea: StateFlow<Int>
+    val totalPerimeter: StateFlow<Int>
 
     // Внутренние StateFlow для управления
     private val _currentHouse = MutableStateFlow<House?>(null)
     private val _roomsInHouse = MutableStateFlow<List<SimpleRoom>>(emptyList())
-    private val _totalArea = MutableStateFlow(0.0)
-    private val _totalPerimeter = MutableStateFlow(0.0)
+    private val _totalArea = MutableStateFlow(0)
+    private val _totalMetre = MutableStateFlow(0)
 
     init {
         currentHouse = _currentHouse.asStateFlow()
         roomsInHouse = _roomsInHouse.asStateFlow()
         totalArea = _totalArea.asStateFlow()
-        totalPerimeter = _totalPerimeter.asStateFlow()
+        totalPerimeter = _totalMetre.asStateFlow()
 
         if (currentHouseId.isNotBlank()) {
             viewModelScope.launch {
@@ -83,19 +81,19 @@ class HouseViewModel(
     private fun recalculateTotalsAndUpdateHouseIfNeeded() {
         val currentRooms = _roomsInHouse.value
         val newTotalArea = currentRooms.sumOf { it.area }
-        val newTotalPerimeter = currentRooms.sumOf { it.perimeter }
+        val newTotalMetre = currentRooms.sumOf { it.metre }
 
         _totalArea.value = newTotalArea
-        _totalPerimeter.value = newTotalPerimeter
+        _totalMetre.value = newTotalMetre
 
         // Обновляем данные дома в БД
         val currentHouseValue = _currentHouse.value
         if (currentHouseValue != null &&
-            (currentHouseValue.totalArea != newTotalArea || currentHouseValue.totalPerimeter != newTotalPerimeter)) {
+            (currentHouseValue.totalArea != newTotalArea || currentHouseValue.totalMetre != newTotalMetre)) {
             viewModelScope.launch { // Запускаем новую корутину для операции с БД
                 val updatedHouse = currentHouseValue.copy(
                     totalArea = newTotalArea,
-                    totalPerimeter = newTotalPerimeter,
+                    totalMetre = newTotalMetre,
                     lastModified = System.currentTimeMillis()
                 )
                 houseDao.updateHouse(updatedHouse) // Flow из houseDao обновит _currentHouse

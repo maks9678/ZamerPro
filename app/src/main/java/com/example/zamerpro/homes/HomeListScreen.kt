@@ -42,8 +42,9 @@ import androidx.navigation.NavController
 import com.example.zamerpro.House
 import com.example.zamerpro.home.HOUSE_SCREEN_ROUTE
 import androidx.compose.foundation.lazy.items
+
 const val HOUSES_LIST_SCREEN_ROUTE = "housesListScreen"
-const val HOUSE_SCREEN_ROUTE = "houseScreen"
+
 fun formatTimestamp(timestamp: Long): String {
     return java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
 }
@@ -64,11 +65,11 @@ fun HousesListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Мои Дома") })
+            TopAppBar(title = { Text("Мои Объекты") })
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Создать новый дом")
+                Icon(Icons.Filled.Add, contentDescription = "Создать новый объект")
             }
         }
     ) { paddingValues ->
@@ -79,7 +80,7 @@ fun HousesListScreen(
         ) {
             if (houses.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("У вас пока нет домов. Нажмите '+' для создания.")
+                    Text("У вас пока нет объектов. Нажмите '+' для создания.")
                 }
             } else {
                 LazyColumn(
@@ -103,12 +104,12 @@ fun HousesListScreen(
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
-                title = { Text("Новый дом") },
+                title = { Text("Новый объект") },
                 text = {
                     OutlinedTextField(
                         value = newHouseName,
                         onValueChange = { newHouseName = it },
-                        label = { Text("Название дома") },
+                        label = { Text("Название объекта") },
                         singleLine = true
                     )
                 },
@@ -161,7 +162,7 @@ fun HouseListItem(
                 )
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Удалить дом", tint = MaterialTheme.colorScheme.error)
+                Icon(Icons.Filled.Delete, contentDescription = "Удалить объект", tint = MaterialTheme.colorScheme.error)
             }
         }
     }

@@ -9,7 +9,7 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [House::class, SimpleRoom::class], version = 2, exportSchema = false)
+@Database(entities = [House::class, SimpleRoom::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun houseDao(): HomeDao
     abstract fun roomDao(): RoomDao // Убедитесь, что RoomDao правильно определен и аннотирован @Dao
@@ -19,7 +19,7 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
 
         // Определяем миграцию с версии 1 на версию 2
-        val MIGRATION_1_2 = object : Migration(1, 2) {
+        val MIGRATION_1_2 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Здесь вы должны написать SQL-запросы для изменения схемы.
                 // Например, если вы добавили таблицу SimpleRoom в версии 2:

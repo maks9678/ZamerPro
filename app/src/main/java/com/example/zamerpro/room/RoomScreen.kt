@@ -55,7 +55,6 @@ const val NEW_ROOM_RESULT_KEY = "new_room_details"
 fun RoomInputScreenSimplePreview() {
     MaterialTheme {
 
-        val previewViewModel = RoomViewModel(currentHouseId = "preview_house_id")
 
         val previewHouseId = "preview_house_123"
         val viewModelForPreview: RoomViewModel = viewModel(
@@ -145,13 +144,13 @@ fun RoomInputScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "Параметры комнаты",
                             style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.padding(bottom = 16.dp)
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
                         DimensionTextField(
                             label = "Высота (м)",

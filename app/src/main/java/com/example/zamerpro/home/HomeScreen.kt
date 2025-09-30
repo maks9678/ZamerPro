@@ -49,8 +49,8 @@ import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 const val HOUSE_SCREEN_ROUTE = "houseScreen"
 
 val previewRooms = listOf(
-    SimpleRoom(id = 1, houseId = "preview_house_id_123", name = "Гостиная (Превью)", area = 25.5, perimeter = 22.0),
-    SimpleRoom(id = 2, houseId = "preview_house_id_123", name = "Кухня (Превью)", area = 12.0, perimeter = 14.0)
+    SimpleRoom(id = 1, houseId = "preview_house_id_123", name = "Гостиная (Превью)", area = 25, metre = 22),
+    SimpleRoom(id = 2, houseId = "preview_house_id_123", name = "Кухня (Превью)", area = 12, metre = 14)
 )
 val previewHouse = House(id = "preview_house_id_123", name = "Дом для Превью")
 
@@ -70,18 +70,16 @@ fun HouseScreenWithDataPreview() {
             currentHouse = previewHouse,
             roomsInHouse = previewRooms,
             totalArea = previewRooms.sumOf { it.area },
-            totalPerimeter = previewRooms.sumOf { it.perimeter },
+            totalMetre = previewRooms.sumOf { it.metre },
             onAddRoomClicked = { /* TODO для превью */ },
             onRemoveRoomClicked = { /* TODO для превью */ }
         )
     }
 }
 
-// Модифицируем HouseScreen, чтобы основная логика UI была в отдельной функции,
-// принимающей все необходимые состояния и коллбэки.
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun HouseScreen( // Эта функция остается для реальной работы с ViewModel
+fun HouseScreen(
     navController: NavController,
     houseId: String,
 ) {
@@ -93,7 +91,7 @@ fun HouseScreen( // Эта функция остается для реально
     val currentHouse by viewModel.currentHouse.collectAsState()
     val roomsInHouse by viewModel.roomsInHouse.collectAsState()
     val totalArea by viewModel.totalArea.collectAsState()
-    val totalPerimeter by viewModel.totalPerimeter.collectAsState()
+    val totalMetre by viewModel.totalPerimeter.collectAsState()
 
     val newRoomResult = navController.currentBackStackEntry
         ?.savedStateHandle
@@ -111,9 +109,8 @@ fun HouseScreen( // Эта функция остается для реально
         currentHouse = currentHouse,
         roomsInHouse = roomsInHouse,
         totalArea = totalArea,
-        totalPerimeter = totalPerimeter,
+        totalMetre = totalMetre,
         onAddRoomClicked = {
-            // navController.navigate(ROOM_INPUT_ROUTE) // было
             navController.navigate("$ROOM_INPUT_ROUTE/$houseId") // Передаем houseId
         },
         onRemoveRoomClicked = { room ->
@@ -122,15 +119,15 @@ fun HouseScreen( // Эта функция остается для реально
     )
 }
 
-// Внутренний Composable, который отвечает только за UI
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HouseScreenInternal(
     navController: NavController, // NavController все еще может быть нужен для навигации с кнопок
     currentHouse: House?,
     roomsInHouse: List<SimpleRoom>,
-    totalArea: Double,
-    totalPerimeter: Double,
+    totalArea: Int,
+    totalMetre: Int,
     onAddRoomClicked: () -> Unit,
     onRemoveRoomClicked: (SimpleRoom) -> Unit,
     modifier: Modifier = Modifier // Добавим modifier
@@ -140,6 +137,7 @@ fun HouseScreenInternal(
             TopAppBar(title = { Text(currentHouse?.name ?: "Мой Дом") }) // Используем имя дома
         }
     ) { paddingValues ->
+
         LazyColumn(
             modifier = modifier // Используем переданный modifier
                 .fillMaxSize()
@@ -149,28 +147,13 @@ fun HouseScreenInternal(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Кнопка "Добавить новую комнату"
-            item {
-                Button(
-                    onClick = onAddRoomClicked, // Используем коллбэк
-                    modifier = Modifier
-                        .fillMaxWidth(0.95f)
-                        .padding(vertical = 8.dp)
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Добавить новую комнату")
-                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                    Text("Добавить новую комнату")
-                }
-            }
-
-            // Карточка с общей информацией
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(0.95f),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
@@ -178,20 +161,20 @@ fun HouseScreenInternal(
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = "${String.format("%.2f", totalArea)} м²",
+                            text = "$totalArea м²",
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                         // val totalPerimeter by viewModel.totalPerimeter.collectAsState() - Убираем, т.к. получаем как параметр
-                        if (totalPerimeter > 0) {
+                        if (totalArea > 0) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Общий периметр комнат:",
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(
-                                text = "${String.format("%.2f", totalPerimeter)} м",
+                                text = "$totalMetre м",
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
@@ -199,14 +182,25 @@ fun HouseScreenInternal(
                     }
                 }
             }
-
-            // Список комнат
+            // Кнопка "Добавить новую комнату"
+            item {
+                Button(
+                    onClick = onAddRoomClicked, // Используем коллбэк
+                    modifier = Modifier
+                        .fillMaxWidth(0.95f)
+                        .padding(vertical = 4.dp)
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Добавить новую комнату")
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text("Добавить новую комнату")
+                }
+            }
             if (roomsInHouse.isNotEmpty()) {
                 item {
                     Text(
                         text = "Список комнат:",
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                        modifier = Modifier.padding( bottom = 4.dp)
                     )
                 }
                 items(roomsInHouse, key = { room -> room.id }) { roomData ->
@@ -230,18 +224,18 @@ fun HouseScreenInternal(
 fun RoomInHouseItem(
     room: SimpleRoom,
     onRemoveClick: () -> Unit,
-    modifier: Modifier = Modifier // Позволяет передавать модификаторы извне
+    modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
-            .fillMaxWidth(0.95f) // Занимает почти всю ширину с небольшими отступами по бокам
-            .padding(vertical = 4.dp), // Небольшой вертикальный отступ между карточками комнат
+            .fillMaxWidth(0.95f)
+            .padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp), // Внутренние отступы в карточке
+                .padding(horizontal = 11.dp, vertical = 12.dp), // Внутренние отступы в карточке
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween // Размещает имя/площадь слева, кнопку справа
         ) {
@@ -251,18 +245,15 @@ fun RoomInHouseItem(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Площадь: ${String.format("%.2f", room.area)} м²",
+                    text = "Площадь: ${room.area} м²",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant // Используйте цвета из темы
                 )
-                // Если у комнаты есть и периметр, и вы хотите его показать:
-                if (room.perimeter > 0) {
-                    Text(
-                        text = "Периметр: ${String.format("%.2f", room.perimeter)} м",
-                        style = MaterialTheme.typography.bodySmall, // Меньший стиль для доп. информации
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+Text(
+    text= "Метраж :",
+    style = MaterialTheme.typography.bodyMedium,
+    color= MaterialTheme.colorScheme.background,
+)
             }
             IconButton(onClick = onRemoveClick) {
                 Icon(
@@ -283,8 +274,8 @@ fun HouseScreenEmptyPreview() {
             navController = rememberNavController(),
             currentHouse = previewHouse.copy(name = "Пустой Дом (Превью)"),
             roomsInHouse = emptyList(),
-            totalArea = 0.0,
-            totalPerimeter = 0.0,
+            totalArea = 0,
+            totalMetre = 0,
             onAddRoomClicked = {},
             onRemoveRoomClicked = {}
         )

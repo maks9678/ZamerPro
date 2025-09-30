@@ -13,8 +13,8 @@ data class House(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val name: String,
     val lastModified: Long = System.currentTimeMillis(),
-    val totalArea: Double = 0.0, // Новое поле для общей площади дома
-    val totalPerimeter: Double = 0.0 // Новое поле для общего метража (периметра) дома
+    val totalArea: Int = 0,
+    val totalMetre: Int = 0
 )
 @Parcelize
 @Entity(tableName = "rooms")
@@ -23,6 +23,6 @@ data class SimpleRoom(
     val id: Int = 0,
     val houseId: String ,
     val name: String,
-    val area: Double = 0.0,
-    val perimeter: Double = 0.0
+    val area: Int = 0,
+    val metre: Int = 0
 ): Parcelable

@@ -133,17 +133,17 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
      */
     fun calculateAndGetSimpleRoom(): SimpleRoom? {
         val name = _roomName.value.trim()
-        val width = _roomWidth.value.toDoubleOrNull()
-        val length = _roomLength.value.toDoubleOrNull()
+        val width = _roomWidth.value.toIntOrNull()
+        val length = _roomLength.value.toIntOrNull()
 
         if (name.isEmpty() || width == null || width <= 0 || length == null || length <= 0) {
             return null
         }
 
         val area = width * length
-        val perimeter = if (width > 0 && length > 0) (width + length) * 2 else 0.0 // Расчет периметра
+        val metre = if (width > 0 && length > 0) (width + length) * 2 else 0 // Расчет периметра
 
-        return SimpleRoom(name = name, houseId =currentHouseId, area = area, perimeter = perimeter) // id сгенерируется по умолчанию
+        return SimpleRoom(name = name, houseId =currentHouseId, area = area, metre = metre) // id сгенерируется по умолчанию
     }
 
     /**

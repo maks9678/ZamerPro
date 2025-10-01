@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,8 +50,20 @@ import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 const val HOUSE_SCREEN_ROUTE = "houseScreen"
 
 val previewRooms = listOf(
-    SimpleRoom(id = 1, houseId = "preview_house_id_123", name = "Гостиная (Превью)", area = 25, metre = 22),
-    SimpleRoom(id = 2, houseId = "preview_house_id_123", name = "Кухня (Превью)", area = 12, metre = 14)
+    SimpleRoom(
+        id = 1,
+        houseId = "preview_house_id_123",
+        name = "Гостиная (Превью)",
+        area = 25,
+        metre = 22
+    ),
+    SimpleRoom(
+        id = 2,
+        houseId = "preview_house_id_123",
+        name = "Кухня (Превью)",
+        area = 12,
+        metre = 14
+    )
 )
 val previewHouse = House(id = "preview_house_id_123", name = "Дом для Превью")
 
@@ -71,8 +84,8 @@ fun HouseScreenWithDataPreview() {
             roomsInHouse = previewRooms,
             totalArea = previewRooms.sumOf { it.area },
             totalMetre = previewRooms.sumOf { it.metre },
-            onAddRoomClicked = { /* TODO для превью */ },
-            onRemoveRoomClicked = { /* TODO для превью */ }
+            onAddRoomClicked = { },
+            onRemoveRoomClicked = { }
         )
     }
 }
@@ -100,7 +113,9 @@ fun HouseScreen(
     LaunchedEffect(newRoomResult?.value) {
         newRoomResult?.value?.let { room ->
             viewModel.addRoom(room) // room здесь без houseId
-            navController.currentBackStackEntry?.savedStateHandle?.remove<SimpleRoom>(NEW_ROOM_RESULT_KEY)
+            navController.currentBackStackEntry?.savedStateHandle?.remove<SimpleRoom>(
+                NEW_ROOM_RESULT_KEY
+            )
         }
     }
 
@@ -134,18 +149,23 @@ fun HouseScreenInternal(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(currentHouse?.name ?: "Мой Дом") }) // Используем имя дома
+            TopAppBar(title = { Text(currentHouse?.name ?: "Мой Дом") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+
+                ))
         }
     ) { paddingValues ->
 
         LazyColumn(
-            modifier = modifier // Используем переданный modifier
+            modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp),
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             item {
                 Card(
@@ -156,28 +176,38 @@ fun HouseScreenInternal(
                         modifier = Modifier.padding(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Общая площадь дома:",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = "$totalArea м²",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                        // val totalPerimeter by viewModel.totalPerimeter.collectAsState() - Убираем, т.к. получаем как параметр
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Площадь стен:",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Text(
+                                text = "$totalArea м²",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
                         if (totalArea > 0) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Общий периметр комнат:",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = "$totalMetre м",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Метраж откосов:",
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                                Text(
+                                    text = "$totalMetre м",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }
@@ -200,7 +230,7 @@ fun HouseScreenInternal(
                     Text(
                         text = "Список комнат:",
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding( bottom = 4.dp)
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
                 }
                 items(roomsInHouse, key = { room -> room.id }) { roomData ->
@@ -220,6 +250,7 @@ fun HouseScreenInternal(
         }
     }
 }
+
 @Composable
 fun RoomInHouseItem(
     room: SimpleRoom,
@@ -249,11 +280,11 @@ fun RoomInHouseItem(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant // Используйте цвета из темы
                 )
-Text(
-    text= "Метраж :",
-    style = MaterialTheme.typography.bodyMedium,
-    color= MaterialTheme.colorScheme.background,
-)
+                Text(
+                    text = "Метраж :",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.background,
+                )
             }
             IconButton(onClick = onRemoveClick) {
                 Icon(

@@ -125,7 +125,6 @@ fun RoomInputScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Поле для названия комнаты
             item {
                 OutlinedTextField(
                     value = roomName,
@@ -149,7 +148,7 @@ fun RoomInputScreen(
                     ) {
                         Text(
                             text = "Параметры комнаты",
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         DimensionTextField(
@@ -232,10 +231,6 @@ fun RoomInputScreen(
     }
 }
 
-// DimensionTextField и DimensionListSection остаются без изменений,
-// но DimensionTextField теперь может принимать isError параметр.
-// Я добавлю его в определение, чтобы код выше компилировался.
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DimensionTextField(
@@ -274,7 +269,7 @@ fun DimensionListSection(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 

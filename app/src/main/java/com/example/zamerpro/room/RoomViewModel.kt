@@ -28,6 +28,17 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
     private val _roomLength = MutableStateFlow("")
     val roomLength: StateFlow<String> = _roomLength.asStateFlow()
 
+    private val _roomArea = MutableStateFlow(0)
+
+    private val _roomMetre = MutableStateFlow(0)
+
+    private val _metreWindow = MutableStateFlow("")
+
+    val metreWindow: StateFlow<String> = _metreWindow.asStateFlow()
+
+
+
+
     fun updateRoomHeight(newHeight: String) {
         _roomHeight.value = newHeight
     }
@@ -77,12 +88,10 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
     }
 
     fun removeWindow(item: ItemDimension) {
-        // !!! Была ошибка: вызывался removeCustomWall вместо removeWindow !!!
         _windows.update { currentWindows -> currentWindows.filterNot { it.id == item.id } }
     }
 
     fun updateWindowWidth(index: Int, newWidth: String) {
-        // !!! Была ошибка: вызывался updateCustomWallWidth вместо updateWindowWidth !!!
         _windows.update { currentWindows ->
             currentWindows.mapIndexed { i, item ->
                 if (i == index) item.copy(width = newWidth) else item
@@ -91,7 +100,6 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
     }
 
     fun updateWindowHeight(index: Int, newHeight: String) {
-        // !!! Была ошибка: вызывался updateCustomWallHeight вместо updateWindowHeight !!!
         _windows.update { currentWindows ->
             currentWindows.mapIndexed { i, item ->
                 if (i == index) item.copy(height = newHeight) else item
@@ -135,13 +143,18 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
         val name = _roomName.value.trim()
         val width = _roomWidth.value.toIntOrNull()
         val length = _roomLength.value.toIntOrNull()
+        val height = _roomHeight.value.toIntOrNull()
+        val metreWindow = _metreWindow.value.toIntOrNull()
 
-        if (name.isEmpty() || width == null || width <= 0 || length == null || length <= 0) {
+        if (name.isEmpty() ||
+            width == null || width <= 0 ||
+            length == null || length <= 0 ||
+            height == null || height <= 0) {
             return null
         }
 
-        val area = width * length
-        val metre = if (width > 0 && length > 0) (width + length) * 2 else 0 // Расчет периметра
+        val area = (width * (length + height) * 2) ?: 0
+        val metre =  (metreWindow) ?: 0 // Расчет периметра
 
         return SimpleRoom(name = name, houseId =currentHouseId, area = area, metre = metre) // id сгенерируется по умолчанию
     }

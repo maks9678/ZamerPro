@@ -192,7 +192,11 @@ fun HouseScreenInternal(
                                 modifier = Modifier.padding(top = 4.dp)
                             )
                         }
-                        if (totalArea > 0) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        )  {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -281,9 +285,9 @@ fun RoomInHouseItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant // Используйте цвета из темы
                 )
                 Text(
-                    text = "Метраж :",
+                    text = "Метраж : ${room.metre} м",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.background,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = onRemoveClick) {

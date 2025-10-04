@@ -1,6 +1,7 @@
 package com.example.zamerpro.room
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -119,34 +120,33 @@ fun RoomInputScreen(
 
     Scaffold(
         bottomBar = {
-        Spacer(modifier = Modifier.height(8.dp)) // Отступ перед кнопкой
-        Button(
-            onClick = {
-                val simpleRoomNoHouseId =
-                    viewModel.calculateAndGetSimpleRoom() // Не содержит houseId
-                if (simpleRoomNoHouseId != null) {
-                    // Передаем объект без houseId. HouseViewModel сам его подставит.
-                    navController.previousBackStackEntry?.savedStateHandle?.set(
-                        NEW_ROOM_RESULT_KEY,
-                        simpleRoomNoHouseId
-                    )
-                    viewModel.resetAllFields()
-                    navController.popBackStack()
-                    println("LOG_ROOM_INPUT: Room to be saved (without houseId yet): $simpleRoomNoHouseId")
-                } else {
-                    println("LOG_ROOM_INPUT: Validation failed for room save.")
-                }
-            },
-            modifier = Modifier.fillMaxWidth(0.9f)
-        ) {
-            Icon(Icons.Filled.Done, contentDescription = "Сохранить комнату")
-            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-            Text(
-                "Сохранить и добавить в дом"
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp)) // Отступ после кнопки
-    })
+            Spacer(modifier = Modifier.height(8.dp)) // Отступ перед кнопкой
+            Button(
+                onClick = {
+                    val simpleRoomNoHouseId =
+                        viewModel.calculateAndGetSimpleRoom() // Не содержит houseId
+                    if (simpleRoomNoHouseId != null) {
+                        // Передаем объект без houseId. HouseViewModel сам его подставит.
+                        navController.previousBackStackEntry?.savedStateHandle?.set(
+                            NEW_ROOM_RESULT_KEY,
+                            simpleRoomNoHouseId
+                        )
+                        viewModel.resetAllFields()
+                        navController.popBackStack()
+                        println("LOG_ROOM_INPUT: Room to be saved (without houseId yet): $simpleRoomNoHouseId")
+                    } else {
+                        println("LOG_ROOM_INPUT: Validation failed for room save.")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().padding(start= 16.dp,bottom = 16.dp, end = 16.dp ),
+            ) {
+                Icon(Icons.Filled.Done, contentDescription = "Сохранить комнату")
+                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                Text(
+                    "Сохранить и добавить в дом"
+                )
+            }
+        })
     { paddingValues ->
         LazyColumn(
             modifier = modifier
@@ -189,10 +189,12 @@ fun RoomInputScreen(
                             Alignment.CenterVertically
                         ) {
                             DimensionTextField(
-                                label = "Высота (м)",
-                                value = roomHeight,
+                                label = "Длина (м)",
+                                value = roomLength,
                                 modifier = Modifier.weight(1f),
-                                onValueChange = { viewModel.updateRoomHeight(it) })
+                                onValueChange = { viewModel.updateRoomLength(it) },
+                                isError = roomLength.toDoubleOrNull() == null && roomLength.isNotBlank() // Пример валидации
+                            )
                             Spacer(modifier = Modifier)
                             DimensionTextField(
                                 label = "Ширина (м)",
@@ -203,12 +205,11 @@ fun RoomInputScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             DimensionTextField(
-                                label = "Длина (м)",
-                                value = roomLength,
+                                label = "Высота (м)",
+                                value = roomHeight,
                                 modifier = Modifier.weight(1f),
-                                onValueChange = { viewModel.updateRoomLength(it) },
-                                isError = roomLength.toDoubleOrNull() == null && roomLength.isNotBlank() // Пример валидации
-                            )
+                                onValueChange = { viewModel.updateRoomHeight(it) })
+
                         }
                     }
                 }
@@ -275,8 +276,8 @@ fun RoomInputScreen(
 
             // Кнопка Сохранить в конце списка
         }
-        }
     }
+}
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -309,11 +310,11 @@ fun DimensionListSection(
     onItemHeightChange: (Int, String) -> Unit  // Новые колбэки
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(0.9f), // В последних изменениях RoomInputScreen используется 0.95f
+        modifier = Modifier.fillMaxWidth(0.95f),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -324,8 +325,7 @@ fun DimensionListSection(
             items.forEachIndexed { index, item ->
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(4.dp),
+                        .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {

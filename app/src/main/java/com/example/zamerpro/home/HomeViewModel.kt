@@ -26,7 +26,6 @@ class HouseViewModel(
     val totalArea: StateFlow<Int>
     val totalPerimeter: StateFlow<Int>
 
-    // Внутренние StateFlow для управления
     private val _currentHouse = MutableStateFlow<House?>(null)
     private val _roomsInHouse = MutableStateFlow<List<SimpleRoom>>(emptyList())
     private val _totalArea = MutableStateFlow(0)
@@ -42,11 +41,6 @@ class HouseViewModel(
             viewModelScope.launch {
                 houseDao.getHouseByIdFlow(currentHouseId).collectLatest { house ->
                     _currentHouse.value = house
-                    // Если HouseScreen ожидает, что totalArea/Perimeter приходят из currentHouse,
-                    // то нужно обновлять _totalArea и _totalPerimeter здесь,
-                    // либо HouseScreen должен сам их извлекать из currentHouse.value.
-                    // Если HouseScreen ожидает, что ViewModel предоставляет отдельные totalArea/Perimeter,
-                    // то эти значения должны быть синхронизированы с изменениями комнат ИЛИ с currentHouse.
                 }
             }
             viewModelScope.launch {

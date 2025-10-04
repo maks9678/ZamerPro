@@ -32,9 +32,6 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
 
     private val _roomMetre = MutableStateFlow(0)
 
-    private val _metreWindow = MutableStateFlow("")
-
-    val metreWindow: StateFlow<String> = _metreWindow.asStateFlow()
 
 
 
@@ -144,7 +141,6 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
         val width = _roomWidth.value.toIntOrNull()
         val length = _roomLength.value.toIntOrNull()
         val height = _roomHeight.value.toIntOrNull()
-        val metreWindow = _metreWindow.value.toIntOrNull()
 
         if (name.isEmpty() ||
             width == null || width <= 0 ||
@@ -154,7 +150,7 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
         }
 
         val area = (width * (length + height) * 2) ?: 0
-        val metre =  (metreWindow) ?: 0 // Расчет периметра
+        val metre =  (_windows.value[currentHouseId.toInt()].height.toFloat() * 2+_windows.value[currentHouseId.toInt()].width.toFloat()).toInt()
 
         return SimpleRoom(name = name, houseId =currentHouseId, area = area, metre = metre) // id сгенерируется по умолчанию
     }

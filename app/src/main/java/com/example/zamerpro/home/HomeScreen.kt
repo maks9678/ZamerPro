@@ -2,13 +2,13 @@ package com.example.zamerpro.home
 
 import android.app.Application
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -43,21 +42,23 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.zamerpro.House
-import com.example.zamerpro.SimpleRoom
+import com.example.zamerpro.Room
 import com.example.zamerpro.room.NEW_ROOM_RESULT_KEY
+import com.example.zamerpro.room.ROOM_EDIT_ROUTE
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
+import com.example.zamerpro.room.UPDATED_ROOM_RESULT_KEY
 
 const val HOUSE_SCREEN_ROUTE = "houseScreen"
 
 val previewRooms = listOf(
-    SimpleRoom(
+    Room(
         id = 1,
         houseId = "preview_house_id_123",
         name = "Гостиная (Превью)",
         area = 25,
         metre = 22
     ),
-    SimpleRoom(
+    Room(
         id = 2,
         houseId = "preview_house_id_123",
         name = "Кухня (Превью)",
@@ -85,7 +86,8 @@ fun HouseScreenWithDataPreview() {
             totalArea = previewRooms.sumOf { it.area },
             totalMetre = previewRooms.sumOf { it.metre },
             onAddRoomClicked = { },
-            onRemoveRoomClicked = { }
+            onRemoveRoomClicked = { },
+            onEditRoomClicked = {}
         )
     }
 }
@@ -108,14 +110,24 @@ fun HouseScreen(
 
     val newRoomResult = navController.currentBackStackEntry
         ?.savedStateHandle
-        ?.getLiveData<SimpleRoom>(NEW_ROOM_RESULT_KEY)?.observeAsState()
+        ?.getLiveData<Room>(NEW_ROOM_RESULT_KEY)?.observeAsState()
 
     LaunchedEffect(newRoomResult?.value) {
         newRoomResult?.value?.let { room ->
             viewModel.addRoom(room) // room здесь без houseId
-            navController.currentBackStackEntry?.savedStateHandle?.remove<SimpleRoom>(
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Room>(
                 NEW_ROOM_RESULT_KEY
             )
+        }
+    }
+    val updatedRoomResult = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<Room>(UPDATED_ROOM_RESULT_KEY)?.observeAsState() // Используем новый ключ
+
+    LaunchedEffect(updatedRoomResult?.value) {
+        updatedRoomResult?.value?.let { room ->
+            viewModel.updateRoom(room) // Предполагаем, что в ViewModel будет такой метод
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Room>(UPDATED_ROOM_RESULT_KEY)
         }
     }
 
@@ -130,6 +142,9 @@ fun HouseScreen(
         },
         onRemoveRoomClicked = { room ->
             viewModel.removeRoom(room)
+        },
+        onEditRoomClicked = { room ->
+            navController.navigate("$ROOM_EDIT_ROUTE/${room.houseId}/${room.id}")
         }
     )
 }
@@ -140,21 +155,24 @@ fun HouseScreen(
 fun HouseScreenInternal(
     navController: NavController, // NavController все еще может быть нужен для навигации с кнопок
     currentHouse: House?,
-    roomsInHouse: List<SimpleRoom>,
+    roomsInHouse: List<Room>,
     totalArea: Int,
     totalMetre: Int,
     onAddRoomClicked: () -> Unit,
-    onRemoveRoomClicked: (SimpleRoom) -> Unit,
+    onRemoveRoomClicked: (Room) -> Unit,
+    onEditRoomClicked: (Room) -> Unit,
     modifier: Modifier = Modifier // Добавим modifier
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(currentHouse?.name ?: "Мой Дом") },
+            TopAppBar(
+                title = { Text(currentHouse?.name ?: "Мой Дом") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
 
-                ))
+                    )
+            )
         }
     ) { paddingValues ->
 
@@ -196,7 +214,7 @@ fun HouseScreenInternal(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
-                        )  {
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -240,7 +258,8 @@ fun HouseScreenInternal(
                 items(roomsInHouse, key = { room -> room.id }) { roomData ->
                     RoomInHouseItem(
                         room = roomData,
-                        onRemoveClick = { onRemoveRoomClicked(roomData) } // Используем коллбэк
+                        onRemoveClick = { onRemoveRoomClicked(roomData) },
+                        onItemClick = { onEditRoomClicked(roomData) }
                     )
                 }
             } else {
@@ -257,14 +276,16 @@ fun HouseScreenInternal(
 
 @Composable
 fun RoomInHouseItem(
-    room: SimpleRoom,
+    room: Room,
     onRemoveClick: () -> Unit,
+    onItemClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth(0.95f)
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .clickable { onItemClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -312,7 +333,8 @@ fun HouseScreenEmptyPreview() {
             totalArea = 0,
             totalMetre = 0,
             onAddRoomClicked = {},
-            onRemoveRoomClicked = {}
+            onRemoveRoomClicked = {},
+            onEditRoomClicked = {}
         )
     }
 }

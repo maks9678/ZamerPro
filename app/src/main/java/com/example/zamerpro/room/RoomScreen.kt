@@ -1,13 +1,12 @@
 package com.example.zamerpro.room
 
+import android.app.Application
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,140 +41,84 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import com.example.zamerpro.HomeDao.AppDatabase
 import com.example.zamerpro.ItemDimension
 import kotlin.collections.forEachIndexed
 
 const val ROOM_INPUT_ROUTE = "roomInput"
-
-// Ключ для возврата результата
+const val ROOM_EDIT_ROUTE = "roomEdit"
 const val NEW_ROOM_RESULT_KEY = "new_room_details"
-
-@Preview(showBackground = true, name = "RoomInputScreen (Простое Превью)")
-@Composable
-fun RoomInputScreenSimplePreview() {
-    MaterialTheme {
-
-
-        val previewHouseId = "preview_house_123"
-        val viewModelForPreview: RoomViewModel = viewModel(
-            factory = RoomViewModelFactory(previewHouseId)
-        )
-
-        viewModelForPreview.updateRoomName("Гостиная (Превью)")
-        viewModelForPreview.updateRoomHeight("2.75")
-        viewModelForPreview.updateRoomWidth("4.8")
-        viewModelForPreview.updateRoomLength("5.2")
-
-        RoomInputScreen(
-            houseId = previewHouseId, // Передаем houseId, как и в реальном вызове
-            viewModel = viewModelForPreview, // Передаем настроенный ViewModel
-            navController = rememberNavController() // Моковый NavController
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "RoomInputScreen (Пустое Простое Превью)")
-@Composable
-fun RoomInputScreenEmptySimplePreview() {
-    MaterialTheme {
-        val previewHouseId = "preview_empty_house_123"
-        val viewModelForPreview: RoomViewModel = viewModel(
-            factory = RoomViewModelFactory(previewHouseId)
-        )
-
-        RoomInputScreen(
-            houseId = previewHouseId,
-            viewModel = viewModelForPreview,
-            navController = rememberNavController()
-        )
-    }
-}
-
-class RoomViewModelFactory(private val houseId: String) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(RoomViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return RoomViewModel(houseId) as T // Передаем houseId в конструктор
-        }
-        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
-    }
-}
-
+const val UPDATED_ROOM_RESULT_KEY = "updated_room_details"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RoomInputScreen(
+fun RoomInputScreenInternal(
     modifier: Modifier = Modifier,
-    houseId: String,
-    viewModel: RoomViewModel = viewModel(factory = RoomViewModelFactory(houseId)),
-    navController: NavController,
+    roomName: String,
+    roomHeight: String,
+    roomWidth: String,
+    roomLength: String,
+    doors: List<ItemDimension>,
+    windows: List<ItemDimension>,
+    customWalls: List<ItemDimension>,
+    onRoomNameChange: (String) -> Unit,
+    onRoomHeightChange: (String) -> Unit,
+    onRoomWidthChange: (String) -> Unit,
+    onRoomLengthChange: (String) -> Unit,
+    onAddDoor: () -> Unit,
+    onRemoveDoor: (ItemDimension) -> Unit,
+    onDoorWidthChange: (Int, String) -> Unit,
+    onDoorHeightChange: (Int, String) -> Unit,
+    onAddWindow: () -> Unit,
+    onRemoveWindow: (ItemDimension) -> Unit,
+    onWindowWidthChange: (Int, String) -> Unit,
+    onWindowHeightChange: (Int, String) -> Unit,
+    onAddCustomWall: () -> Unit,
+    onRemoveCustomWall: (ItemDimension) -> Unit,
+    onCustomWallWidthChange: (Int, String) -> Unit,
+    onCustomWallHeightChange: (Int, String) -> Unit,
+    onSaveClick: () -> Unit
 ) {
-    val roomName by viewModel.roomName.collectAsState()
-    val roomHeight by viewModel.roomHeight.collectAsState()
-    val roomWidth by viewModel.roomWidth.collectAsState()
-    val roomLength by viewModel.roomLength.collectAsState()
-    val doors by viewModel.doors.collectAsState()
-    val windows by viewModel.windows.collectAsState()
-    val customWalls by viewModel.customWalls.collectAsState()
-
     Scaffold(
         bottomBar = {
-            Spacer(modifier = Modifier.height(8.dp)) // Отступ перед кнопкой
             Button(
-                onClick = {
-                    val simpleRoomNoHouseId =
-                        viewModel.calculateAndGetSimpleRoom() // Не содержит houseId
-                    if (simpleRoomNoHouseId != null) {
-                        // Передаем объект без houseId. HouseViewModel сам его подставит.
-                        navController.previousBackStackEntry?.savedStateHandle?.set(
-                            NEW_ROOM_RESULT_KEY,
-                            simpleRoomNoHouseId
-                        )
-                        viewModel.resetAllFields()
-                        navController.popBackStack()
-                        println("LOG_ROOM_INPUT: Room to be saved (without houseId yet): $simpleRoomNoHouseId")
-                    } else {
-                        println("LOG_ROOM_INPUT: Validation failed for room save.")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().padding(start= 16.dp,bottom = 16.dp, end = 16.dp ),
+                onClick = onSaveClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             ) {
                 Icon(Icons.Filled.Done, contentDescription = "Сохранить комнату")
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                Text(
-                    "Сохранить и добавить в дом"
-                )
+                Text("Сохранить и добавить в дом")
             }
-        })
-    { paddingValues ->
+        }
+    ) { paddingValues ->
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .padding(paddingValues) // Применяем padding от Scaffold
+                .padding(paddingValues)
                 .background(color = MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(vertical = 8.dp),
+            contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 OutlinedTextField(
                     value = roomName,
-                    onValueChange = { viewModel.updateRoomName(it) },
+                    onValueChange = onRoomNameChange,
                     label = { Text("Название комнаты") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    isError = roomName.isBlank() // Пример простой валидации на UI
+                    isError = roomName.isBlank()
                 )
             }
 
-            // Карточка для основных параметров комнаты
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(0.95f), // Сделал чуть шире для соответствия HouseScreen
+                    modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
@@ -185,100 +128,203 @@ fun RoomInputScreen(
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            Arrangement.spacedBy(8.dp),
-                            Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             DimensionTextField(
                                 label = "Длина (м)",
                                 value = roomLength,
                                 modifier = Modifier.weight(1f),
-                                onValueChange = { viewModel.updateRoomLength(it) },
-                                isError = roomLength.toDoubleOrNull() == null && roomLength.isNotBlank() // Пример валидации
+                                onValueChange = onRoomLengthChange, // Используем коллбэк
+                                isError = roomLength.toDoubleOrNull() == null && roomLength.isNotBlank()
                             )
-                            Spacer(modifier = Modifier)
                             DimensionTextField(
                                 label = "Ширина (м)",
                                 value = roomWidth,
                                 modifier = Modifier.weight(1f),
-                                onValueChange = { viewModel.updateRoomWidth(it) },
-                                isError = roomWidth.toDoubleOrNull() == null && roomWidth.isNotBlank() // Пример валидации
+                                onValueChange = onRoomWidthChange, // Используем коллбэк
+                                isError = roomWidth.toDoubleOrNull() == null && roomWidth.isNotBlank()
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
                             DimensionTextField(
                                 label = "Высота (м)",
                                 value = roomHeight,
                                 modifier = Modifier.weight(1f),
-                                onValueChange = { viewModel.updateRoomHeight(it) })
-
+                                onValueChange = onRoomHeightChange
+                            )
                         }
                     }
                 }
             }
 
-            // Секции для Дверей, Окон, Стен (без изменений в их структуре)
             item {
                 DimensionListSection(
                     title = "Размеры дверей", items = doors,
-                    onAddItem = { viewModel.addDoor() },
-                    onRemoveItem = { item -> viewModel.removeDoor(item) },
-                    onItemWidthChange = { index, newWidth ->
-                        viewModel.updateDoorWidth(
-                            index,
-                            newWidth
-                        )
-                    },
-                    onItemHeightChange = { index, newHeight ->
-                        viewModel.updateDoorHeight(
-                            index,
-                            newHeight
-                        )
-                    }
+                    onAddItem = onAddDoor,
+                    onRemoveItem = onRemoveDoor,
+                    onItemWidthChange = onDoorWidthChange,
+                    onItemHeightChange = onDoorHeightChange
                 )
             }
             item {
                 DimensionListSection(
                     title = "Размеры окон", items = windows,
-                    onAddItem = { viewModel.addWindow() },
-                    onRemoveItem = { item -> viewModel.removeWindow(item) }, // Исправлено на removeWindow
-                    onItemWidthChange = { index, newWidth ->
-                        viewModel.updateWindowWidth(
-                            index,
-                            newWidth
-                        )
-                    }, // Исправлено
-                    onItemHeightChange = { index, newHeight ->
-                        viewModel.updateWindowHeight(
-                            index,
-                            newHeight
-                        )
-                    } // Исправлено
+                    onAddItem = onAddWindow,
+                    onRemoveItem = onRemoveWindow,
+                    onItemWidthChange = onWindowWidthChange,
+                    onItemHeightChange = onWindowHeightChange
                 )
             }
             item {
                 DimensionListSection(
                     title = "Дополнительные стены", items = customWalls,
-                    onAddItem = { viewModel.addCustomWall() },
-                    onRemoveItem = { item -> viewModel.removeCustomWall(item) },
-                    onItemWidthChange = { index, newWidth ->
-                        viewModel.updateCustomWallWidth(
-                            index,
-                            newWidth
-                        )
-                    },
-                    onItemHeightChange = { index, newHeight ->
-                        viewModel.updateCustomWallHeight(
-                            index,
-                            newHeight
-                        )
-                    }
+                    onAddItem = onAddCustomWall,
+                    onRemoveItem = onRemoveCustomWall,
+                    onItemWidthChange = onCustomWallWidthChange,
+                    onItemHeightChange = onCustomWallHeightChange
                 )
             }
-
-            // Кнопка Сохранить в конце списка
         }
     }
 }
+@Preview(showBackground = true, name = "RoomInputScreen (Пустое)")
+@Composable
+fun RoomInputScreenEmptyPreview() {
+    MaterialTheme {
+        RoomInputScreenInternal(
+            roomName = "",
+            roomHeight = "",
+            roomWidth = "",
+            roomLength = "",
+            doors = listOf(ItemDimension()),
+            windows = listOf(ItemDimension()),
+            customWalls = listOf(ItemDimension()),
+            onRoomNameChange = {},
+            onRoomHeightChange = {},
+            onRoomWidthChange = {},
+            onRoomLengthChange = {},
+            onAddDoor = {},
+            onRemoveDoor = {},
+            onDoorWidthChange = { _, _ -> },
+            onDoorHeightChange = { _, _ -> },
+            onAddWindow = {},
+            onRemoveWindow = {},
+            onWindowWidthChange = { _, _ -> },
+            onWindowHeightChange = { _, _ -> },
+            onAddCustomWall = {},
+            onRemoveCustomWall = {},
+            onCustomWallWidthChange = { _, _ -> },
+            onCustomWallHeightChange = { _, _ -> },
+            onSaveClick = {}
+        )
+    }
+}
 
+@Preview(showBackground = true, name = "RoomInputScreen с данными")
+@Composable
+fun RoomInputScreenWithDataPreview() {
+    MaterialTheme {
+        RoomInputScreenInternal(
+            roomName = "Гостиная (Превью)",
+            roomHeight = "2.75",
+            roomWidth = "4.8",
+            roomLength = "5.2",
+            doors = listOf(ItemDimension(width = "0.8", height = "2.0")),
+            windows = listOf(ItemDimension(width = "1.2", height = "1.5")),
+            customWalls = emptyList(),
+            onRoomNameChange = {},
+            onRoomHeightChange = {},
+            onRoomWidthChange = {},
+            onRoomLengthChange = {},
+            onAddDoor = {},
+            onRemoveDoor = {},
+            onDoorWidthChange = { _, _ -> },
+            onDoorHeightChange = { _, _ -> },
+            onAddWindow = {},
+            onRemoveWindow = {},
+            onWindowWidthChange = { _, _ -> },
+            onWindowHeightChange = { _, _ -> },
+            onAddCustomWall = {},
+            onRemoveCustomWall = {},
+            onCustomWallWidthChange = { _, _ -> },
+            onCustomWallHeightChange = { _, _ -> },
+            onSaveClick = {}
+        )
+    }
+}
+
+class RoomViewModelFactory(
+    private val houseId: String,
+    private val roomId: Int?,
+    private val application: Application
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RoomViewModel::class.java)) {
+            val db = AppDatabase.getDatabase(application)
+            @Suppress("UNCHECKED_CAST")
+            return RoomViewModel(houseId, roomId, db.roomDao()) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RoomInputScreen(
+    modifier: Modifier = Modifier,
+    houseId: String,
+    roomId: Int?,
+    navController: NavController,
+) {
+    val application = androidx.compose.ui.platform.LocalContext.current.applicationContext as Application
+    val viewModel: RoomViewModel = viewModel(factory = RoomViewModelFactory(houseId, roomId, application))
+
+    val roomName by viewModel.roomName.collectAsState()
+    val roomHeight by viewModel.roomHeight.collectAsState()
+    val roomWidth by viewModel.roomWidth.collectAsState()
+    val roomLength by viewModel.roomLength.collectAsState()
+    val doors by viewModel.doors.collectAsState()
+    val windows by viewModel.windows.collectAsState()
+    val customWalls by viewModel.customWalls.collectAsState()
+
+    RoomInputScreenInternal(
+        modifier = modifier,
+        roomName = roomName,
+        roomHeight = roomHeight,
+        roomWidth = roomWidth,
+        roomLength = roomLength,
+        doors = doors,
+        windows = windows,
+        customWalls = customWalls,
+        onRoomNameChange = { viewModel.updateRoomName(it) },
+        onRoomHeightChange = { viewModel.updateRoomHeight(it) },
+        onRoomWidthChange = { viewModel.updateRoomWidth(it) },
+        onRoomLengthChange = { viewModel.updateRoomLength(it) },
+        onAddDoor = { viewModel.addDoor() },
+        onRemoveDoor = { viewModel.removeDoor(it) },
+        onDoorWidthChange = { index, width -> viewModel.updateDoorWidth(index, width) },
+        onDoorHeightChange = { index, height -> viewModel.updateDoorHeight(index, height) },
+        onAddWindow = { viewModel.addWindow() },
+        onRemoveWindow = { viewModel.removeWindow(it) },
+        onWindowWidthChange = { index, width -> viewModel.updateWindowWidth(index, width) },
+        onWindowHeightChange = { index, height -> viewModel.updateWindowHeight(index, height) },
+        onAddCustomWall = { viewModel.addCustomWall() },
+        onRemoveCustomWall = { viewModel.removeCustomWall(it) },
+        onCustomWallWidthChange = { index, width -> viewModel.updateCustomWallWidth(index, width) },
+        onCustomWallHeightChange = { index, height -> viewModel.updateCustomWallHeight(index, height) },
+        onSaveClick = {
+            val roomToSave = viewModel.calculateAndGetSimpleRoom()
+            if (roomToSave != null) {
+                if (roomId == null) {
+                    navController.previousBackStackEntry?.savedStateHandle?.set(NEW_ROOM_RESULT_KEY, roomToSave)
+                } else {
+                    navController.previousBackStackEntry?.savedStateHandle?.set(UPDATED_ROOM_RESULT_KEY, roomToSave)
+                }
+                viewModel.resetAllFields()
+                navController.popBackStack()
+            }
+        }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -287,7 +333,7 @@ fun DimensionTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    isError: Boolean = false // Добавлен параметр isError
+    isError: Boolean = false
 ) {
     OutlinedTextField(
         value = value,
@@ -296,7 +342,7 @@ fun DimensionTextField(
         modifier = modifier,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         singleLine = true,
-        isError = isError // Передаем isError в OutlinedTextField
+        isError = isError
     )
 }
 
@@ -336,7 +382,7 @@ fun DimensionListSection(
                             onItemWidthChange(index, newWidth)
                         },
                         modifier = Modifier.weight(1f),
-                        isError = item.width.toDoubleOrNull() == null && item.width.isNotBlank() // Пример валидации
+                        isError = item.width == null // Пример валидации
                     )
                     DimensionTextField( // DimensionTextField теперь принимает isError
                         label = "Высота (м)",
@@ -345,7 +391,7 @@ fun DimensionListSection(
                             onItemHeightChange(index, newHeight)
                         },
                         modifier = Modifier.weight(1f),
-                        isError = item.height.toDoubleOrNull() == null && item.height.isNotBlank() // Пример валидации
+                        isError = item.height == null // Пример валидации
                     )
                     IconButton(onClick = { onRemoveItem(item) }) { // Передаем объект для удаления
                         Icon(Icons.Filled.Delete, contentDescription = "Удалить")

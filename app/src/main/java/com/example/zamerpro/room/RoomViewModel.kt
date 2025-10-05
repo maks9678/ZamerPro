@@ -1,14 +1,21 @@
 package com.example.zamerpro.room
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.zamerpro.HomeDao.RoomDao
 import com.example.zamerpro.ItemDimension
-import com.example.zamerpro.SimpleRoom
+import com.example.zamerpro.Room
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class RoomViewModel(private val currentHouseId: String) : ViewModel() {
+class RoomViewModel(
+    private val currentHouseId: String,
+    private val currentRoomId:Int?,
+    private val roomDao: RoomDao
+) : ViewModel() {
 
     // --- Название комнаты ---
     private val _roomName = MutableStateFlow("комната")
@@ -19,7 +26,7 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
     }
 
     // --- Основные параметры комнаты ---
-    private val _roomHeight = MutableStateFlow("") // Высота пока не используется в SimpleRoom, но оставим
+    private val _roomHeight = MutableStateFlow("")
     val roomHeight: StateFlow<String> = _roomHeight.asStateFlow()
 
     private val _roomWidth = MutableStateFlow("")
@@ -28,14 +35,31 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
     private val _roomLength = MutableStateFlow("")
     val roomLength: StateFlow<String> = _roomLength.asStateFlow()
 
-    private val _roomArea = MutableStateFlow(0)
+    private val _roomArea = MutableStateFlow(0.0)
+    val roomArea: StateFlow<Double> = _roomArea.asStateFlow()
 
-    private val _roomMetre = MutableStateFlow(0)
+    private val _roomMetre = MutableStateFlow(0.0)
+    val roomMetre: StateFlow<Double> = _roomMetre.asStateFlow()
 
 
-
-
-
+    init {
+        // Если это режим редактирования, загружаем данные комнаты
+        if (currentRoomId != null) {
+            // 3. Используем правильный launch из kotlinx.coroutines
+            viewModelScope.launch {
+                // Предполагается, что getRoomByIdSuspend есть в RoomDao и возвращает SimpleRoom?
+                val room: Room? = roomDao.getRoomByIdSuspend(currentRoomId)
+                room?.let { existingRoom -> // Даем переменной осмысленное имя
+                    _roomName.value = existingRoom.name
+                    // 4. Поля в SimpleRoom у вас, скорее всего, Double, а не String
+                    _roomWidth.value = existingRoom.width.toString()
+                    _roomLength.value = existingRoom.length.toString()
+                    _roomHeight.value = existingRoom.height.toString()
+                    // Здесь также нужно загрузить и установить данные для окон, дверей и т.д.
+                }
+            }
+        }
+    }
     fun updateRoomHeight(newHeight: String) {
         _roomHeight.value = newHeight
     }
@@ -136,11 +160,12 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
      * Проверяет основные данные, рассчитывает площадь и возвращает SimpleRoom.
      * Возвращает null, если данные некорректны.
      */
-    fun calculateAndGetSimpleRoom(): SimpleRoom? {
+    fun calculateAndGetSimpleRoom(): Room? {
         val name = _roomName.value.trim()
-        val width = _roomWidth.value.toIntOrNull()
-        val length = _roomLength.value.toIntOrNull()
-        val height = _roomHeight.value.toIntOrNull()
+        val width = _roomWidth.value.toDoubleOrNull()?:0.0
+        val length = _roomLength.value.toDoubleOrNull()?:0.0
+        val height = _roomHeight.value.toDoubleOrNull()?:0.0
+        val houseIdToSave = (currentRoomId ?: 0).toString()
 
         if (name.isEmpty() ||
             width == null || width <= 0 ||
@@ -149,10 +174,11 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
             return null
         }
 
-        val area = (width * (length + height) * 2) ?: 0
-        val metre =  (_windows.value[currentHouseId.toInt()].height.toFloat() * 2+_windows.value[currentHouseId.toInt()].width.toFloat()).toInt()
+        val area = (width * (length + height) * 2)
+        val metre =  (_windows.value[currentHouseId.toInt()].height.toFloat() +
+                _windows.value[currentHouseId.toInt()].width.toFloat()*2)
 
-        return SimpleRoom(name = name, houseId =currentHouseId, area = area, metre = metre) // id сгенерируется по умолчанию
+        return Room(name = name, houseId =houseIdToSave, area = area, metre = metre) // id сгенерируется по умолчанию
     }
 
     /**
@@ -165,6 +191,6 @@ class RoomViewModel(private val currentHouseId: String) : ViewModel() {
         _roomLength.value = ""
         _doors.value = listOf(ItemDimension()) // Возвращаем к одному пустому элементу
         _windows.value = listOf(ItemDimension())
-        _customWalls.value = listOf(ItemDimension())
+        _customWalls.value = emptyList<ItemDimension>()
     }
 }

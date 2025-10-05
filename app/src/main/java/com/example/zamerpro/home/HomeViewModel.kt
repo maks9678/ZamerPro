@@ -8,7 +8,7 @@ import com.example.zamerpro.HomeDao.AppDatabase
 import com.example.zamerpro.HomeDao.HomeDao
 import com.example.zamerpro.HomeDao.RoomDao
 import com.example.zamerpro.House
-import com.example.zamerpro.SimpleRoom
+import com.example.zamerpro.Room
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,12 +22,12 @@ class HouseViewModel(
 ) : ViewModel() {
 
     val currentHouse: StateFlow<House?>
-    val roomsInHouse: StateFlow<List<SimpleRoom>>
+    val roomsInHouse: StateFlow<List<Room>>
     val totalArea: StateFlow<Int>
     val totalPerimeter: StateFlow<Int>
 
     private val _currentHouse = MutableStateFlow<House?>(null)
-    private val _roomsInHouse = MutableStateFlow<List<SimpleRoom>>(emptyList())
+    private val _roomsInHouse = MutableStateFlow<List<Room>>(emptyList())
     private val _totalArea = MutableStateFlow(0)
     private val _totalMetre = MutableStateFlow(0)
 
@@ -52,16 +52,23 @@ class HouseViewModel(
         }
     }
 
-    fun addRoom(newRoomData: SimpleRoom) {
+    fun addRoom(newRoomData: Room) {
         viewModelScope.launch {
             // Предположим, что SimpleRoom имеет поле houseId, которое нужно установить
-            val roomWithHouseId = newRoomData.copy(houseId = currentHouseId) // Убедитесь, что SimpleRoom имеет поле houseId
+            val roomWithHouseId =
+                newRoomData.copy(houseId = currentHouseId) // Убедитесь, что SimpleRoom имеет поле houseId
             roomDao.insertRoom(roomWithHouseId) // Добавляем в БД. Flow из DAO обновит _roomsInHouse.
             // recalculateTotalsAndUpdateHouseIfNeeded() будет вызван автоматически из-за collectLatest на _roomsInHouse
         }
     }
 
-    fun removeRoom(roomToRemove: SimpleRoom) {
+    fun updateRoom(room: Room) {
+        viewModelScope.launch {
+            roomDao.updateRoom(room) // Предполагаем, что у вас есть @Update метод в RoomDao
+        }
+    }
+
+    fun removeRoom(roomToRemove: Room) {
         viewModelScope.launch {
             roomDao.deleteRoom(roomToRemove) // Удаляем из БД. Flow из DAO обновит _roomsInHouse.
             // recalculateTotalsAndUpdateHouseIfNeeded() будет вызван автоматически
@@ -79,7 +86,8 @@ class HouseViewModel(
         // Обновляем данные дома в БД
         val currentHouseValue = _currentHouse.value
         if (currentHouseValue != null &&
-            (currentHouseValue.totalArea != newTotalArea || currentHouseValue.totalMetre != newTotalMetre)) {
+            (currentHouseValue.totalArea != newTotalArea || currentHouseValue.totalMetre != newTotalMetre)
+        ) {
             viewModelScope.launch { // Запускаем новую корутину для операции с БД
                 val updatedHouse = currentHouseValue.copy(
                     totalArea = newTotalArea,
@@ -101,7 +109,8 @@ class HouseViewModel(
             if (modelClass.isAssignableFrom(HouseViewModel::class.java)) {
                 // Здесь нужно получить экземпляры houseDao и roomDao
                 // Например, через AppDatabase.getDatabase(application).houseDao()
-                val db = AppDatabase.getDatabase(application) // Предполагается, что у вас есть такой метод
+                val db =
+                    AppDatabase.getDatabase(application) // Предполагается, что у вас есть такой метод
                 @Suppress("UNCHECKED_CAST")
                 return HouseViewModel(db.houseDao(), db.roomDao(), houseId) as T
             }

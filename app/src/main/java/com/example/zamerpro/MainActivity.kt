@@ -30,7 +30,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = HOUSES_LIST_SCREEN_ROUTE) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = HOUSES_LIST_SCREEN_ROUTE
+                    ) {
                         composable(HOUSES_LIST_SCREEN_ROUTE) {
                             HousesListScreen(navController = navController)
                         }
@@ -42,19 +45,39 @@ class MainActivity : ComponentActivity() {
                             if (houseId != null) {
                                 HouseScreen(navController = navController, houseId = houseId)
                             } else {
-                                navController.popBackStack(HOUSES_LIST_SCREEN_ROUTE, inclusive = false)
+                                navController.popBackStack(
+                                    HOUSES_LIST_SCREEN_ROUTE,
+                                    inclusive = false
+                                )
                             }
                         }
                         composable(
                             route = "$ROOM_INPUT_ROUTE/{houseId}",
-                            arguments = listOf(navArgument("houseId") { type =
-                                NavType.StringType })
+                            arguments = listOf(navArgument("houseId") {
+                                type =
+                                    NavType.StringType
+                            })
                         ) { backStackEntry ->
                             val houseId = backStackEntry.arguments?.getString("houseId")
                             if (houseId != null) {
-                                RoomInputScreen(navController = navController, houseId = houseId)
+                                RoomInputScreen(navController = navController, houseId = houseId,roomId=null)
                             } else {
-                                navController.popBackStack( HOUSE_SCREEN_ROUTE, inclusive = false)
+                                navController.popBackStack(HOUSE_SCREEN_ROUTE, inclusive = false)
+                            }
+                        }
+
+                        composable(
+                            route = "$ROOM_INPUT_ROUTE/{houseId}/{roomId}",
+                            arguments = listOf(
+                                navArgument("houseId"){type = NavType.StringType},
+                                navArgument("roomId"){type=NavType.IntType})
+                        ){backStackEntry->
+                            val houseId = backStackEntry.arguments?.getString("houseId")
+                            val roomId = backStackEntry.arguments?.getInt("roomId")
+                            if(houseId!=null && roomId != null){
+                                RoomInputScreen(navController = navController, houseId = houseId,roomId =roomId)
+                            }else{
+                                navController.popBackStack()
                             }
                         }
                     }

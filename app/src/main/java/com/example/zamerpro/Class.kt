@@ -22,7 +22,7 @@ class Material(
     val extraMaterial:Int,
 )
 enum class OpeningType {
-    DOOR, WINDOW
+    DOOR, WINDOW, OTHER_METRE,OTHER_AREA
 }
 
 @Entity(
@@ -44,6 +44,7 @@ data class Opening(
     val width: Double,
     val height: Double
 )
+//НАДО ПЕРЕМЕСТИТЬ В КОМНАТУ
 @Parcelize
 data class ItemDimension(
     var id: String = UUID.randomUUID().toString(),
@@ -75,18 +76,16 @@ data class Room(
     val id: Int = 0,
     val houseId: String,
     val name: String,
-    val area: Double ,
-    val metre: Double ,
     var width: Double,
     var length: Double,
     var height: Double,
     var windowMetre: Double,
-    var optionallyArea:List<Double> = emptyList<Double>()
+    val wallArea: Double,// Площадь СТЕН (для обоев): floorPerimeter * height
+    val floorArea: Double,// Площадь ПОЛА: width * length
 ): Parcelable
 data class RoomWithObjects(
     @Embedded
     val room: Room,
-
     @Relation(
         entity = Opening::class, // Указываем, что связываем с Opening
         parentColumn = "id",

@@ -1,6 +1,7 @@
 package com.example.zamerpro.room
 
 import android.app.Application
+import androidx.activity.result.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -43,6 +45,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.zamerpro.HomeDao.AppDatabase
 import com.example.zamerpro.ItemDimension
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.collections.forEachIndexed
 
 const val ROOM_INPUT_ROUTE = "roomInput"
@@ -278,6 +282,9 @@ fun RoomInputScreen(
     val application = androidx.compose.ui.platform.LocalContext.current.applicationContext as Application
     val viewModel: RoomViewModel = viewModel(factory = RoomViewModelFactory(houseId, roomId, application))
 
+    // 1. Получаем CoroutineScope для асинхронных операций
+    val scope = rememberCoroutineScope()
+
     val roomName by viewModel.roomName.collectAsState()
     val roomHeight by viewModel.roomHeight.collectAsState()
     val roomWidth by viewModel.roomWidth.collectAsState()
@@ -295,32 +302,34 @@ fun RoomInputScreen(
         doors = doors,
         windows = windows,
         customWalls = customWalls,
-        onRoomNameChange = { viewModel.updateRoomName(it) },
-        onRoomHeightChange = { viewModel.updateRoomHeight(it) },
-        onRoomWidthChange = { viewModel.updateRoomWidth(it) },
-        onRoomLengthChange = { viewModel.updateRoomLength(it) },
-        onAddDoor = { viewModel.addDoor() },
-        onRemoveDoor = { viewModel.removeDoor(it) },
-        onDoorWidthChange = { index, width -> viewModel.updateDoorWidth(index, width) },
-        onDoorHeightChange = { index, height -> viewModel.updateDoorHeight(index, height) },
-        onAddWindow = { viewModel.addWindow() },
-        onRemoveWindow = { viewModel.removeWindow(it) },
-        onWindowWidthChange = { index, width -> viewModel.updateWindowWidth(index, width) },
-        onWindowHeightChange = { index, height -> viewModel.updateWindowHeight(index, height) },
-        onAddCustomWall = { viewModel.addCustomWall() },
-        onRemoveCustomWall = { viewModel.removeCustomWall(it) },
-        onCustomWallWidthChange = { index, width -> viewModel.updateCustomWallWidth(index, width) },
-        onCustomWallHeightChange = { index, height -> viewModel.updateCustomWallHeight(index, height) },
+        onRoomNameChange = viewModel::updateRoomName, // Используем ссылки на методы для краткости
+        onRoomHeightChange = viewModel::updateRoomHeight,
+        onRoomWidthChange = viewModel::updateRoomWidth,
+        onRoomLengthChange = viewModel::updateRoomLength,
+        onAddDoor = viewModel::addDoor,
+        onRemoveDoor = viewModel::removeDoor,
+        onDoorWidthChange = viewModel::updateDoorWidth,
+        onDoorHeightChange = viewModel::updateDoorHeight,
+        onAddWindow = viewModel::addWindow,
+        onRemoveWindow = viewModel::removeWindow,
+        onWindowWidthChange = viewModel::updateWindowWidth,
+        onWindowHeightChange = viewModel::updateWindowHeight,
+        onAddCustomWall = viewModel::addCustomWall,
+        onRemoveCustomWall = viewModel::removeCustomWall,
+        onCustomWallWidthChange = viewModel::updateCustomWallWidth,
+        onCustomWallHeightChange = viewModel::updateCustomWallHeight,
         onSaveClick = {
-            val roomToSave = viewModel.calculateAndGetSimpleRoom()
-            if (roomToSave != null) {
-                if (roomId == null) {
-                    navController.previousBackStackEntry?.savedStateHandle?.set(NEW_ROOM_RESULT_KEY, roomToSave)
-                } else {
-                    navController.previousBackStackEntry?.savedStateHandle?.set(UPDATED_ROOM_RESULT_KEY, roomToSave)
+            // 2. Запускаем корутину для сохранения
+            scope.launch {
+                // 3. Вызываем новую suspend-функцию
+                viewModel.saveRoomData()
+
+                // 4. После завершения сохранения возвращаемся на предыдущий экран
+                // Ничего передавать не нужно, т.к. предыдущий экран сам обновит данные из БД
+                withContext(Dispatchers.Main) {
+                    viewModel.resetAllFields()
+                    navController.popBackStack()
                 }
-                viewModel.resetAllFields()
-                navController.popBackStack()
             }
         }
     )

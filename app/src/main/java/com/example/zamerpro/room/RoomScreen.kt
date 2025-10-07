@@ -1,19 +1,21 @@
 package com.example.zamerpro.room
 
 import android.app.Application
-import androidx.activity.result.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -29,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -36,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,11 +50,19 @@ import androidx.navigation.NavController
 import com.example.zamerpro.HomeDao.AppDatabase
 import com.example.zamerpro.ItemDimension
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.collections.forEachIndexed
+import kotlin.collections.toTypedArray
 
+enum class TypeRoom(val displayName:String){
+    LIVING_ROOM("Кухня-Гостиная"),
+    BEDROOM("Спальня"),
+    BATHROOM("Сан.узел"),
+    HALLWAY("Коридор"),
+
+}
 const val ROOM_INPUT_ROUTE = "roomInput"
-const val ROOM_EDIT_ROUTE = "roomEdit"
 const val NEW_ROOM_RESULT_KEY = "new_room_details"
 const val UPDATED_ROOM_RESULT_KEY = "updated_room_details"
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,6 +77,7 @@ fun RoomInputScreenInternal(
     windows: List<ItemDimension>,
     customWalls: List<ItemDimension>,
     onRoomNameChange: (String) -> Unit,
+    onRoomTypeSelected: (TypeRoom) -> Unit,
     onRoomHeightChange: (String) -> Unit,
     onRoomWidthChange: (String) -> Unit,
     onRoomLengthChange: (String) -> Unit,
@@ -80,6 +93,7 @@ fun RoomInputScreenInternal(
     onRemoveCustomWall: (ItemDimension) -> Unit,
     onCustomWallWidthChange: (Int, String) -> Unit,
     onCustomWallHeightChange: (Int, String) -> Unit,
+    isSaveButtonEnabled: Boolean,
     onSaveClick: () -> Unit
 ) {
     Scaffold(
@@ -89,6 +103,7 @@ fun RoomInputScreenInternal(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
+                enabled = isSaveButtonEnabled
             ) {
                 Icon(Icons.Filled.Done, contentDescription = "Сохранить комнату")
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
@@ -103,7 +118,7 @@ fun RoomInputScreenInternal(
                 .background(color = MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
                 OutlinedTextField(
@@ -115,7 +130,21 @@ fun RoomInputScreenInternal(
                     isError = roomName.isBlank()
                 )
             }
-
+            item {
+                // Горизонтальная прокрутка для чипов
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    items(TypeRoom.entries.toTypedArray()) { roomType ->
+                        SuggestionChip(
+                            onClick = { onRoomTypeSelected(roomType) },
+                            label = { Text(roomType.displayName) }
+                        )
+                    }
+                }
+            }
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -203,6 +232,7 @@ fun RoomInputScreenEmptyPreview() {
             windows = listOf(ItemDimension()),
             customWalls = listOf(ItemDimension()),
             onRoomNameChange = {},
+            onRoomTypeSelected = {},
             onRoomHeightChange = {},
             onRoomWidthChange = {},
             onRoomLengthChange = {},
@@ -218,6 +248,7 @@ fun RoomInputScreenEmptyPreview() {
             onRemoveCustomWall = {},
             onCustomWallWidthChange = { _, _ -> },
             onCustomWallHeightChange = { _, _ -> },
+            isSaveButtonEnabled = true,
             onSaveClick = {}
         )
     }
@@ -239,6 +270,7 @@ fun RoomInputScreenWithDataPreview() {
             onRoomHeightChange = {},
             onRoomWidthChange = {},
             onRoomLengthChange = {},
+            onRoomTypeSelected = {},
             onAddDoor = {},
             onRemoveDoor = {},
             onDoorWidthChange = { _, _ -> },
@@ -251,6 +283,7 @@ fun RoomInputScreenWithDataPreview() {
             onRemoveCustomWall = {},
             onCustomWallWidthChange = { _, _ -> },
             onCustomWallHeightChange = { _, _ -> },
+            isSaveButtonEnabled = true,
             onSaveClick = {}
         )
     }
@@ -279,8 +312,9 @@ fun RoomInputScreen(
     roomId: Int?,
     navController: NavController,
 ) {
-    val application = androidx.compose.ui.platform.LocalContext.current.applicationContext as Application
-    val viewModel: RoomViewModel = viewModel(factory = RoomViewModelFactory(houseId, roomId, application))
+    val application = LocalContext.current.applicationContext as Application
+    val viewModel: RoomViewModel = viewModel(factory = RoomViewModelFactory(houseId, roomId, application),
+        viewModelStoreOwner = navController.currentBackStackEntry!!)
 
     // 1. Получаем CoroutineScope для асинхронных операций
     val scope = rememberCoroutineScope()
@@ -306,6 +340,7 @@ fun RoomInputScreen(
         onRoomHeightChange = viewModel::updateRoomHeight,
         onRoomWidthChange = viewModel::updateRoomWidth,
         onRoomLengthChange = viewModel::updateRoomLength,
+        onRoomTypeSelected =viewModel::onRoomTypeSelected,
         onAddDoor = viewModel::addDoor,
         onRemoveDoor = viewModel::removeDoor,
         onDoorWidthChange = viewModel::updateDoorWidth,
@@ -318,6 +353,7 @@ fun RoomInputScreen(
         onRemoveCustomWall = viewModel::removeCustomWall,
         onCustomWallWidthChange = viewModel::updateCustomWallWidth,
         onCustomWallHeightChange = viewModel::updateCustomWallHeight,
+        isSaveButtonEnabled = true,
         onSaveClick = {
             // 2. Запускаем корутину для сохранения
             scope.launch {
@@ -327,7 +363,6 @@ fun RoomInputScreen(
                 // 4. После завершения сохранения возвращаемся на предыдущий экран
                 // Ничего передавать не нужно, т.к. предыдущий экран сам обновит данные из БД
                 withContext(Dispatchers.Main) {
-                    viewModel.resetAllFields()
                     navController.popBackStack()
                 }
             }
@@ -348,7 +383,7 @@ fun DimensionTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         singleLine = true,
         isError = isError

@@ -60,26 +60,44 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val houseId = backStackEntry.arguments?.getString("houseId")
                             if (houseId != null) {
-                                RoomInputScreen(navController = navController, houseId = houseId,roomId=null)
+                                RoomInputScreen(
+                                    navController = navController,
+                                    houseId = houseId,
+                                    roomId = null
+                                )
                             } else {
                                 navController.popBackStack(HOUSE_SCREEN_ROUTE, inclusive = false)
                             }
                         }
 
                         composable(
-                            route = "$ROOM_INPUT_ROUTE/{houseId}/{roomId}",
+                            // 1. Определяем маршрут с необязательным roomId
+                            route = "$ROOM_INPUT_ROUTE/{houseId}?roomId={roomId}",
                             arguments = listOf(
-                                navArgument("houseId"){type = NavType.StringType},
-                                navArgument("roomId"){type=NavType.IntType})
-                        ){backStackEntry->
+                                navArgument("houseId") { type = NavType.StringType },
+                                navArgument("roomId") {
+                                    type = NavType.IntType
+                                    defaultValue = -1 // Используем -1 как маркер отсутствия ID
+                                }
+                            )
+                        ) { backStackEntry ->
                             val houseId = backStackEntry.arguments?.getString("houseId")
-                            val roomId = backStackEntry.arguments?.getInt("roomId")
-                            if(houseId!=null && roomId != null){
-                                RoomInputScreen(navController = navController, houseId = houseId,roomId =roomId)
-                            }else{
+                            if (houseId != null) {
+                                val roomId = backStackEntry.arguments?.getInt("roomId")
+
+                                // 2. Передаем roomId во ViewModel (он будет либо реальным ID, либо -1)
+                                // ViewModel будет знать, создавать новую комнату или загружать существующую.
+                                RoomInputScreen(
+                                    navController = navController,
+                                    houseId = houseId,
+                                    roomId = if (roomId == -1) null else roomId
+                                )
+                            } else {
+                                // Если houseId отсутствует, безопасно возвращаемся назад
                                 navController.popBackStack()
                             }
                         }
+
                     }
                 }
             }

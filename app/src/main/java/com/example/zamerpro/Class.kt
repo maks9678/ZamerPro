@@ -57,6 +57,8 @@ data class House(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val name: String,
     val lastModified: Long = System.currentTimeMillis(),
+    val totalWallArea: Int = 0,
+    val totalWindowMetre: Int = 0,
 )
 data class HouseWithRooms(
     @Embedded

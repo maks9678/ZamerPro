@@ -1,6 +1,5 @@
 package com.example.zamerpro.room
 
-import androidx.compose.ui.input.key.type
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zamerpro.HomeDao.RoomDao
@@ -8,16 +7,21 @@ import com.example.zamerpro.ItemDimension
 import com.example.zamerpro.Opening
 import com.example.zamerpro.OpeningType
 import com.example.zamerpro.Room
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class RoomViewModel(
-    private val currentHouseId: String,
-    private val currentRoomId: Int?,
+    private val houseId: String,
+    val currentRoomId: Int?,
     private val roomDao: RoomDao
 ) : ViewModel() {
 
@@ -46,6 +50,18 @@ class RoomViewModel(
 
     private val _customWalls = MutableStateFlow(listOf(ItemDimension()))
     val customWalls: StateFlow<List<ItemDimension>> = _customWalls.asStateFlow()
+
+    val isDataValid: StateFlow<Boolean> = combine(
+        roomLength, roomWidth, roomHeight
+    )
+    { length, width, heigth ->
+        (length.toDoubleOrNull() ?: 0.0) > 0.0 && (width.toDoubleOrNull()
+            ?: 0.0) > 0.0 && (heigth.toDoubleOrNull() ?: 0.0) > 0.0
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
 
     init {
         // Если это режим редактирования, загружаем данные комнаты
@@ -98,12 +114,15 @@ class RoomViewModel(
             }
         }
     }
+
     fun updateRoomHeight(newHeight: String) {
         _roomHeight.value = newHeight
     }
+
     fun updateRoomWidth(newWidth: String) {
         _roomWidth.value = newWidth
     }
+
     fun updateRoomLength(newLength: String) {
         _roomLength.value = newLength
     }
@@ -220,7 +239,7 @@ class RoomViewModel(
         // 3. Создаем объект Room для сохранения
         val roomToSave = Room(
             id = currentRoomId ?: 0, // 0 для новой комнаты, чтобы Room сгенерировал ID
-            houseId = currentHouseId, // ID дома, к которому комната принадлежит
+            houseId = houseId, // ID дома, к которому комната принадлежит
             name = name,
             width = width,
             length = length,
@@ -261,36 +280,53 @@ class RoomViewModel(
         return Opening(id = this.id, roomId = roomId, type = type, width = w, height = h)
     }
 
-
-    /**
-     * Сбрасывает все поля ввода к значениям по умолчанию.
-     */
-    fun resetAllFields() {
-        _roomName.value = ""
-        _roomHeight.value = ""
-        _roomWidth.value = ""
-        _roomLength.value = ""
-        _doors.value = listOf(ItemDimension()) // Возвращаем к одному пустому элементу
-        _windows.value = listOf(ItemDimension())
-        _customWalls.value = emptyList<ItemDimension>()
-    }
     suspend fun saveRoomData() {
-        val dataToSave = prepareRoomForSave() ?: return // Получаем данные или выходим, если они невалидны
+        // Проверка, что данные валидны, перед сохранением
+        if (!isDataValid.value) return
 
-        val room = dataToSave.first
-        val openings = dataToSave.second
+        var finalRoomName = _roomName.value.trim()
 
-        // Room сама разберется, обновить (update) или вставить (insert) комнату,
-        // так как у Room есть @PrimaryKey
-        val roomId = roomDao.insertRoom(room).toInt()
+        // 1. Логика автоматического именования
+        if (finalRoomName.isBlank()) {
+            val existingRooms = roomDao.getRoomsForHouseSuspend(houseId)
+            val roomCount = existingRooms.count {
+                // Считаем комнаты с названием "Комната X"
+                it.name.startsWith("Комната ") && (currentRoomId == null || it.id != currentRoomId)
+            }
+            finalRoomName = "Комната ${roomCount + 1}"
+        }
+        val roomToSave = Room(
+            id = currentRoomId ?: 0, // Room решит, вставить или обновить
+            houseId = houseId,
+            name = finalRoomName, // <-- Используем финальное имя
+            length = _roomLength.value.toDoubleOrNull() ?: 0.0,
+            width = _roomWidth.value.toDoubleOrNull() ?: 0.0,
+            height = _roomHeight.value.toDoubleOrNull() ?: 0.0,
+            floorArea = _roomArea.value,
+            wallArea = 0.0,
+            windowMetre = _roomMetre.value,
+        )
 
-        // Сначала удаляем все старые проемы для этой комнаты, чтобы избежать дубликатов
-        roomDao.deleteOpeningsByRoomId(roomId)
+        roomDao.insertRoom(roomToSave)
 
-        // Вставляем новый список проемов
-        openings.forEach { opening ->
-            // Убедимся, что у проема правильный roomId, особенно для новой комнаты
-            roomDao.insertOpening(opening.copy(roomId = roomId))
+    }
+
+    fun onRoomTypeSelected(roomType: TypeRoom) {
+        viewModelScope.launch(Dispatchers.IO) { // Выполняем запрос к БД в фоновом потоке
+            if (roomType == TypeRoom.BEDROOM) {
+                val existingRooms = roomDao.getRoomsForHouseSuspend(houseId)
+                val bedroomCount = existingRooms.count {
+                    it.name.startsWith(TypeRoom.BEDROOM.displayName) && (currentRoomId == null || it.id != currentRoomId)
+                }
+                // Обновляем StateFlow в основном потоке
+                withContext(Dispatchers.Main) {
+                    _roomName.value = "${TypeRoom.BEDROOM.displayName} ${bedroomCount + 1}"
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    _roomName.value = roomType.displayName
+                }
+            }
         }
     }
 }

@@ -44,28 +44,21 @@ import androidx.navigation.compose.rememberNavController
 import com.example.zamerpro.House
 import com.example.zamerpro.Room
 import com.example.zamerpro.room.NEW_ROOM_RESULT_KEY
-import com.example.zamerpro.room.ROOM_EDIT_ROUTE
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 import com.example.zamerpro.room.UPDATED_ROOM_RESULT_KEY
 
 const val HOUSE_SCREEN_ROUTE = "houseScreen"
 
-val previewRooms = listOf(
-    Room(
-        id = 1,
-        houseId = "preview_house_id_123",
-        name = "Гостиная (Превью)",
-        area = 25,
-        metre = 22
-    ),
-    Room(
-        id = 2,
-        houseId = "preview_house_id_123",
-        name = "Кухня (Превью)",
-        area = 12,
-        metre = 14
-    )
-)
+val previewsRoom = listOf(Room(
+        name = "Test",
+width = 4.0,
+length = 5.0,
+height = 2.5,
+floorArea = 20.0,
+wallArea = 45.0,
+windowMetre = 0.0,
+houseId = "preview_house"
+) )
 val previewHouse = House(id = "preview_house_id_123", name = "Дом для Превью")
 
 @Preview(showBackground = true, name = "HouseScreen с данными")
@@ -82,11 +75,11 @@ fun HouseScreenWithDataPreview() {
         HouseScreenInternal( // Назовем внутренний Composable иначе
             navController = rememberNavController(),
             currentHouse = previewHouse,
-            roomsInHouse = previewRooms,
-            totalArea = previewRooms.sumOf { it.area },
-            totalMetre = previewRooms.sumOf { it.metre },
-            onAddRoomClicked = { },
-            onRemoveRoomClicked = { },
+            roomsInHouse = previewsRoom,
+            totalArea = previewsRoom.sumOf { it.wallArea }.toInt(),
+            totalMetre = previewsRoom.sumOf { it.windowMetre}.toInt(),
+            onAddRoomClicked = {},
+            onRemoveRoomClicked = {},
             onEditRoomClicked = {}
         )
     }
@@ -105,8 +98,7 @@ fun HouseScreen(
 
     val currentHouse by viewModel.currentHouse.collectAsState()
     val roomsInHouse by viewModel.roomsInHouse.collectAsState()
-    val totalArea by viewModel.totalArea.collectAsState()
-    val totalMetre by viewModel.totalPerimeter.collectAsState()
+
 
     val newRoomResult = navController.currentBackStackEntry
         ?.savedStateHandle
@@ -135,8 +127,8 @@ fun HouseScreen(
         navController = navController,
         currentHouse = currentHouse,
         roomsInHouse = roomsInHouse,
-        totalArea = totalArea,
-        totalMetre = totalMetre,
+        totalArea = currentHouse?.totalWallArea ?: 0,
+        totalMetre = currentHouse?.totalWindowMetre ?: 0,
         onAddRoomClicked = {
             navController.navigate("$ROOM_INPUT_ROUTE/$houseId") // Передаем houseId
         },
@@ -144,7 +136,7 @@ fun HouseScreen(
             viewModel.removeRoom(room)
         },
         onEditRoomClicked = { room ->
-            navController.navigate("$ROOM_EDIT_ROUTE/${room.houseId}/${room.id}")
+            navController.navigate("$ROOM_INPUT_ROUTE/${room.houseId}?roomId=${room.id}")
         }
     )
 }
@@ -301,12 +293,12 @@ fun RoomInHouseItem(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Площадь: ${room.area} м²",
+                    text = "Площадь стен: ${room.wallArea} м²",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant // Используйте цвета из темы
                 )
                 Text(
-                    text = "Метраж : ${room.metre} м",
+                    text = "Метраж : ${room.windowMetre} м",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

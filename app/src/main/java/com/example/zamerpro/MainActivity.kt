@@ -12,14 +12,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.zamerpro.MaterialsList.MATERIALS_LIST_SCREEN_ROUTE
+import com.example.zamerpro.MaterialsList.MaterialsListScreen
 import com.example.zamerpro.home.HOUSE_SCREEN_ROUTE
 import com.example.zamerpro.home.HouseScreen
 import com.example.zamerpro.homes.HOUSES_LIST_SCREEN_ROUTE
 import com.example.zamerpro.homes.HousesListScreen
+import com.example.zamerpro.materials.MaterialsScreen
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 import com.example.zamerpro.room.RoomInputScreen
 import com.example.zamerpro.ui.theme.ZamerProTheme
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,8 +56,7 @@ class MainActivity : ComponentActivity() {
                         composable(
                             route = "$ROOM_INPUT_ROUTE/{houseId}",
                             arguments = listOf(navArgument("houseId") {
-                                type =
-                                    NavType.StringType
+                                type =NavType.StringType
                             })
                         ) { backStackEntry ->
                             val houseId = backStackEntry.arguments?.getString("houseId")
@@ -97,10 +98,44 @@ class MainActivity : ComponentActivity() {
                                 navController.popBackStack()
                             }
                         }
+                        composable(
+                            route = HOUSES_LIST_SCREEN_ROUTE,
+                            arguments = listOf(navArgument("houseId") {
+                                type =
+                                    NavType.StringType
+                            })
+                        ) { backStackEntry ->
+                            val houseId = backStackEntry.arguments?.getString("houseId")
+                            if (houseId != null) {
+                                MaterialsListScreen(
+                                    navController = navController,
+                                )
+                            } else {
+                                navController.popBackStack(HOUSE_SCREEN_ROUTE, inclusive = false)
+                            }
+                        }
 
+                        composable(
+                            route = "HOUSES_SCREEN_ROUTE/{houseId}",
+                            arguments = listOf(navArgument("houseId") {
+                                type =
+                                    NavType.StringType
+                            })
+                        ) { backStackEntry ->
+                            val houseId = backStackEntry.arguments?.getString("houseId")
+                            if (houseId != null) {
+                                MaterialsScreen(
+                                    navController = navController,
+                                    houseId = houseId,
+                                )
+                            } else {
+                                navController.popBackStack(MATERIALS_LIST_SCREEN_ROUTE, inclusive = false)
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
+

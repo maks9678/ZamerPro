@@ -13,7 +13,8 @@ import kotlinx.android.parcel.Parcelize
 import java.util.UUID
 
 class Material(
-    val corners: Int,
+    val plasticCorners: Int,
+    val windowJoining:Int,
     val serpyanka: Int,
     val fugen:Int,
     val primer:Int,

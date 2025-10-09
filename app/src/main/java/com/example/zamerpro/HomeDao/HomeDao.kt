@@ -42,4 +42,5 @@ interface HomeDao {
     @Transaction
     @Query("SELECT * FROM houses WHERE id = :houseId")
     fun getHouseWithRooms(houseId: String): Flow<HouseWithRooms?>
+
 }

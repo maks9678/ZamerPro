@@ -2,16 +2,18 @@ package com.example.zamerpro.materials
 
 import androidx.lifecycle.ViewModel
 import com.example.zamerpro.HomeDao.HomeDao
+import com.example.zamerpro.HomeDao.MaterialsDao
 import com.example.zamerpro.House
 import com.example.zamerpro.Material
 
 class MaterialsViewModel(
     val houseId: String,
+    private val materialsDao: MaterialsDao,
     private val homeDao: HomeDao
 ) : ViewModel() {
 
     val currentHouse = homeDao.getHouseByIdFlow(houseId)
-    val materials = homeDao.getMaterialsForHouseFlow(houseId)
+    val materials = materialsDao.getMaterialsForHouse(houseId)
     fun calculationFugen(currentHouse: House): Int {
         val wallExpenditureFugen = currentHouse.totalWallArea / 100
         val windowExpenditureFugen = currentHouse.totalWindowMetre / 50

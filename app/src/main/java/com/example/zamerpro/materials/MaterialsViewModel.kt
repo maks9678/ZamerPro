@@ -4,7 +4,53 @@ import androidx.lifecycle.ViewModel
 import com.example.zamerpro.HomeDao.HomeDao
 import com.example.zamerpro.HomeDao.MaterialsDao
 import com.example.zamerpro.House
-import com.example.zamerpro.Material
+import com.example.zamerpro.Materials
+
+enum class Measurement(val displayName: String, val shortForm: String) {
+    METRE("метр", "м"),
+    PIECE("штук", "шт"),
+    SQUARE_METRE("квадратный метр", "м²"),
+    KILOGRAM("килограмм", "кг"),
+    LITRE("литр", "л");
+
+    // Метод для получения отображаемого имени с числом
+    fun getDisplayNameWithCount(count: Int): String {
+        return when (this) {
+            METRE -> when {
+                count == 1 -> "$count метр"
+                count in 2..4 -> "$count метра"
+                else -> "$count метров"
+            }
+
+            PIECE -> when {
+                count == 1 -> "$count штука"
+                count in 2..4 -> "$count штуки"
+                else -> "$count штук"
+            }
+
+            SQUARE_METRE -> when {
+                count == 1 -> "$count квадратный метр"
+                count in 2..4 -> "$count квадратных метра"
+                else -> "$count квадратных метров"
+            }
+
+            KILOGRAM -> when {
+                count == 1 -> "$count килограмм"
+                count in 2..4 -> "$count килограмма"
+                else -> "$count килограммов"
+            }
+
+            LITRE -> when {
+                count == 1 -> "$count литр"
+                count in 2..4 -> "$count литра"
+                else -> "$count литров"
+            }
+        }
+    }
+    fun getShortForm(count: Double): String {
+        return "$count $shortForm"
+    }
+}
 
 class MaterialsViewModel(
     val houseId: String,
@@ -40,8 +86,8 @@ class MaterialsViewModel(
         return wallExpenditureGrindingWheels
     }
 
-    fun getMaterials(currentHouse: House): Material {
-        val material = Material(
+    fun getMaterials(currentHouse: House): Materials {
+        val material = Materials(
             plasticCorners = 0,
             windowJoining = 0,
             serpyanka = calculationSerpyanka(currentHouse),

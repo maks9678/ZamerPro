@@ -12,7 +12,29 @@ import androidx.room.TypeConverters
 import kotlinx.android.parcel.Parcelize
 import java.util.UUID
 
-class Material(
+enum class Measurement (
+METRE("метр"),
+PIECE("штук"),)
+@Entity(
+tableName = "materials",
+foreignKeys = [
+ForeignKey(
+entity = House::class,
+parentColumns = ["id"],
+childColumns = ["houseId"],
+onDelete = ForeignKey.CASCADE // Если удалить дом, все его материалы тоже удалятся
+)
+]
+)
+data class Material(
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+    val name: String,         // Название материала, например "Обои"
+    val quantity: Int,     // Количество, например 10.5
+    val unit: String,         // Единица измерения, например "рулон" или "кв.м."
+    val houseId: Int          // Внешний ключ для связи с домом
+)
+class Materials(
     val plasticCorners: Int,
     val windowJoining:Int,
     val serpyanka: Int,

@@ -14,6 +14,7 @@ import com.example.zamerpro.Room
 abstract class AppDatabase : RoomDatabase() {
     abstract fun houseDao(): HomeDao
     abstract fun roomDao(): RoomDao
+abstract fun materialsDao(): MaterialsDao
 
     companion object {
         @Volatile

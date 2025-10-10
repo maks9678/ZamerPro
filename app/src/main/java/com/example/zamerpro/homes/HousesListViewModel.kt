@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class HousesListViewModel (application: Application) : AndroidViewModel(application) {
-    // AppDatabase и houseDao остаются такими же
     private val database = AppDatabase.getDatabase(application) // Получаем экземпляр БД
     private val houseDao = database.houseDao() // Получаем DAO из экземпляра БД
 

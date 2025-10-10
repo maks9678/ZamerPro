@@ -38,6 +38,9 @@ import androidx.navigation.NavController
 import com.example.zamerpro.House
 import com.example.zamerpro.home.HOUSE_SCREEN_ROUTE
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.text.style.TextAlign
 

@@ -12,9 +12,14 @@ import androidx.room.TypeConverters
 import kotlinx.android.parcel.Parcelize
 import java.util.UUID
 
-enum class Measurement (
-METRE("метр"),
-PIECE("штук"),)
+enum class Measurement(val displayName: String, val shortForm: String) {
+    METRE("метр", "м"),
+    PIECE("штука", "шт"),
+    SQUARE_METRE("квадратный метр", "м²"),
+    KILOGRAM("килограмм", "кг"),
+    LITRE("литр", "л");
+    // Можете добавить сюда другие единицы, если нужно
+}
 @Entity(
 tableName = "materials",
 foreignKeys = [
@@ -32,9 +37,12 @@ data class Material(
     val name: String,         // Название материала, например "Обои"
     val quantity: Int,     // Количество, например 10.5
     val unit: String,         // Единица измерения, например "рулон" или "кв.м."
-    val houseId: Int          // Внешний ключ для связи с домом
+    val houseId: String          // Внешний ключ для связи с домом
 )
-class Materials(
+class HomeSupplies(
+    val id: String = UUID.randomUUID().toString(),
+    val houseId: String,
+    val listOfMaterials: List<Material>,
     val plasticCorners: Int,
     val windowJoining:Int,
     val serpyanka: Int,

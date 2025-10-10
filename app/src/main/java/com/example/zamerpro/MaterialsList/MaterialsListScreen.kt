@@ -43,8 +43,7 @@ fun MaterialsListScreenPreview() {
         House(id = "3", name = "Дом у моря", totalWallArea = 150, totalWindowMetre = 45)
     )
     MaterialsListScreenInternal(
-        previewHouses,
-        showDialog = false,
+        houses = previewHouses,
         onHouseClick = {},
     )
 }
@@ -52,11 +51,11 @@ fun MaterialsListScreenPreview() {
 @Composable
 fun MaterialsListScreen(
     navController: NavController,
-    viewModel: HousesListViewModel = viewModel()
+    viewModel: MaterialsListViewModel = viewModel()
 ) {
     val houses by viewModel.houses.collectAsState()
 
-    MaterialsListScreenInternal(houses = houses, showDialog = false, onHouseClick = { house ->
+    MaterialsListScreenInternal(houses = houses, onHouseClick = { house ->
         navController.navigate("$HOUSE_SCREEN_ROUTE/${house.id}")
     })
 }
@@ -93,7 +92,6 @@ fun MaterialListItem(
 @Composable
 fun MaterialsListScreenInternal(
     houses: List<House>,
-    showDialog: Boolean,
     onHouseClick: (House) -> Unit,
     modifier: Modifier = Modifier
 ) {

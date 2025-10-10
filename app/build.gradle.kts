@@ -42,6 +42,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.compose.material:material-icons-extended-android:1.6.7")
     implementation(libs.core.ktx)
     implementation(libs.material3)
     val room_version = "2.8.0" // Используйте актуальную версию

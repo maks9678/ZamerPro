@@ -10,6 +10,8 @@ import androidx.room.Update
 import com.example.zamerpro.House
 import com.example.zamerpro.HouseWithRooms
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+
 @Dao
 interface HomeDao {
     @Query("SELECT * FROM houses WHERE id = :houseId")

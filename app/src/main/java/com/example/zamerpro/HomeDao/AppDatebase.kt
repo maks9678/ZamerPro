@@ -6,10 +6,11 @@ import androidx.room.RoomDatabase
 import com.example.zamerpro.House
 import androidx.room.TypeConverters
 import com.example.zamerpro.Converters
+import com.example.zamerpro.Material
 import com.example.zamerpro.Opening
 import com.example.zamerpro.Room
 
-@Database(entities = [House::class, Room::class, Opening::class], version = 5, exportSchema = false)
+@Database(entities = [House::class, Room::class, Opening::class, Material::class], version = 6, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun houseDao(): HomeDao

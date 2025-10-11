@@ -22,7 +22,7 @@ data class CalculatedMaterial(
 )
 
 class MaterialsViewModel(
-    val houseId: String, // <<-- ВАЖНО: Используем Int
+    val houseId: String,
     private val materialsDao: MaterialsDao,
     private val homeDao: HomeDao
 ) : ViewModel() {

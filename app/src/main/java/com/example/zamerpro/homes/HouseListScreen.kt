@@ -1,5 +1,6 @@
 package com.example.zamerpro.homes
 
+import android.app.Application
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,7 +43,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 
 const val HOUSES_LIST_SCREEN_ROUTE = "housesListScreen"
 
@@ -57,11 +65,20 @@ fun formatTimestamp(timestamp: Long): String {
 fun HousesListScreenWithDataPreview() {
     MaterialTheme { // Оберните в вашу тему
         val previewHouses = listOf(
-            House(id = "1", name = "Дом у озера (Превью)", lastModified = System.currentTimeMillis()),
-            House(id = "2", name = "Квартира в центре (Превью)", lastModified = System.currentTimeMillis() - 100000)
+            House(
+                id = "1",
+                name = "Дом у озера (Превью)",
+                lastModified = System.currentTimeMillis()
+            ),
+            House(
+                id = "2",
+                name = "Квартира в центре (Превью)",
+                lastModified = System.currentTimeMillis() - 100000
+            )
         )
         HousesListScreenInternal(
             houses = previewHouses,
+            modifier = Modifier,
             showDialog = false,
             newHouseName = "",
             onNewHouseNameChange = {},
@@ -79,6 +96,7 @@ fun HousesListScreenEmptyPreview() {
     MaterialTheme {
         HousesListScreenInternal(
             houses = emptyList(),
+            modifier = Modifier,
             showDialog = false,
             newHouseName = "",
             onNewHouseNameChange = {},
@@ -96,6 +114,7 @@ fun HousesListScreenWithDialogPreview() {
     MaterialTheme {
         HousesListScreenInternal(
             houses = emptyList(),
+            modifier = Modifier,
             showDialog = true, // Показываем диалог
             newHouseName = "Мой новый дом",
             onNewHouseNameChange = {},
@@ -106,29 +125,32 @@ fun HousesListScreenWithDialogPreview() {
         )
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HousesListScreen(
+    modifier: Modifier = Modifier,
     navController: NavController,
-    viewModel: HousesListViewModel = viewModel()
 ) {
+    val application = LocalContext.current.applicationContext as Application
+    val viewModel: HousesListViewModel = viewModel(factory = AppViewModelProvider(application))
     val houses by viewModel.houses.collectAsState()
-    var showDialog by remember { mutableStateOf(false) }
+    val showDialog by viewModel.showDialog.collectAsState()
     var newHouseName by remember { mutableStateOf("") }
 
     HousesListScreenInternal(
         houses = houses,
+        modifier = modifier,
         showDialog = showDialog,
         newHouseName = newHouseName,
         onNewHouseNameChange = { newHouseName = it },
-        onShowDialogChange = { showDialog = it },
+        onShowDialogChange = { viewModel.onShowDialogChange(it)},
         onConfirmNewHouse = {
             if (newHouseName.isNotBlank()) {
                 viewModel.createNewHouse(newHouseName) { houseId ->
                     navController.navigate("$HOUSE_SCREEN_ROUTE/$houseId")
                 }
                 newHouseName = ""
-                showDialog = false
             }
         },
         onDeleteHouse = { house -> viewModel.deleteHouse(house) },
@@ -137,10 +159,12 @@ fun HousesListScreen(
         }
     )
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HousesListScreenInternal(
     houses: List<House>,
+    modifier: Modifier,
     showDialog: Boolean,
     newHouseName: String,
     onNewHouseNameChange: (String) -> Unit,
@@ -148,85 +172,63 @@ fun HousesListScreenInternal(
     onConfirmNewHouse: () -> Unit,
     onDeleteHouse: (House) -> Unit,
     onHouseClick: (House) -> Unit,
-    modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Мои Объекты") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-
-                    // Цвет текста и иконок
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-
-                    // Если есть навигационная иконка
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-
-                    // Если есть действия (actions)
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                ) )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { onShowDialogChange(true) }) {
-                Icon(Icons.Filled.Add, contentDescription = "Создать новый объект")
-            }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            // ✅ Применяем отступы, чтобы контент не уезжал под панели
+            modifier = modifier.fillMaxSize()
         ) {
+            // Контент экрана (список домов или текст)
             if (houses.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(modifier = Modifier.padding(horizontal = 8.dp),
+                    Text(
+                        modifier = Modifier.padding(horizontal = 8.dp),
                         textAlign = TextAlign.Center,
-                        text = "У вас пока нет объектов. Нажмите '+' для создания.")
+                        text = "У вас пока нет объектов. Нажмите '+' для создания."
+                    )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(all = 16.dp),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 80.dp
+                    ), // Добавляем отступ снизу, чтобы FAB не перекрывал последний элемент
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(houses, key = { it.id }) { house ->
                         HouseListItem(
                             house = house,
-                            onClick = {
-                                onHouseClick(house)
-                            },
+                            onClick = { onHouseClick(house) },
                             onDelete = { onDeleteHouse(house) }
                         )
                     }
                 }
             }
-        }
 
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = { onShowDialogChange(false) },
-                title = { Text("Новый объект") },
-                text = {
-                    OutlinedTextField(
-                        value = newHouseName,
-                        onValueChange = onNewHouseNameChange,
-                        label = { Text("Название объекта") },
-                        singleLine = true
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick =  onConfirmNewHouse) { Text("Создать") }
-                },
-                dismissButton = {
-                    Button(onClick = { onShowDialogChange(false) }) { Text("Отмена") }
-                }
-            )
+            // Диалог создания остается здесь, он будет показан поверх всего
+            if (showDialog) {
+                AlertDialog(
+                    onDismissRequest = { onShowDialogChange(false) },
+                    title = { Text("Новый объект") },
+                    text = {
+                        OutlinedTextField(
+                            value = newHouseName,
+                            onValueChange = onNewHouseNameChange,
+                            label = { Text("Название объекта") },
+                            singleLine = true
+                        )
+                    },
+                    confirmButton = {
+                        Button(onClick = onConfirmNewHouse) { Text("Создать") }
+                    },
+                    dismissButton = {
+                        Button(onClick = { onShowDialogChange(false) }) { Text("Отмена") }
+                    }
+                )
+            }
         }
     }
-}
 
 @Composable
 fun HouseListItem(
@@ -263,5 +265,17 @@ fun HouseListItem(
                 )
             }
         }
+    }
+}
+
+// Эта фабрика подходит для ViewModel, которые наследуются от AndroidViewModel
+class AppViewModelProvider(private val application: Application) :
+    ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(HousesListViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return HousesListViewModel(application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

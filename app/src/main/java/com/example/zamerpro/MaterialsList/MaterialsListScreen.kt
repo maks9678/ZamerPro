@@ -1,5 +1,6 @@
 package com.example.zamerpro.MaterialsList
 
+import android.app.Application
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.zamerpro.House
 import com.example.zamerpro.home.HOUSE_SCREEN_ROUTE
+import com.example.zamerpro.homes.AppViewModelProvider
 import com.example.zamerpro.homes.HousesListViewModel
 
 const val MATERIALS_LIST_SCREEN_ROUTE = "materialsListScreen"
@@ -44,18 +46,21 @@ fun MaterialsListScreenPreview() {
     )
     MaterialsListScreenInternal(
         houses = previewHouses,
+        modifier = Modifier,
         onHouseClick = {},
     )
 }
 
 @Composable
 fun MaterialsListScreen(
+    modifier: Modifier = Modifier,
     navController: NavController,
-    viewModel: MaterialsListViewModel = viewModel()
 ) {
+    val viewModel: HousesListViewModel =
+        viewModel(factory = AppViewModelProvider(LocalContext.current.applicationContext as Application))
     val houses by viewModel.houses.collectAsState()
 
-    MaterialsListScreenInternal(houses = houses, onHouseClick = { house ->
+    MaterialsListScreenInternal(houses = houses, modifier = modifier, onHouseClick = { house ->
         navController.navigate("$HOUSE_SCREEN_ROUTE/${house.id}")
     })
 }
@@ -92,10 +97,11 @@ fun MaterialListItem(
 @Composable
 fun MaterialsListScreenInternal(
     houses: List<House>,
+    modifier: Modifier,
     onHouseClick: (House) -> Unit,
-    modifier: Modifier = Modifier
 ) {
     Scaffold(
+        modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Материалы") },

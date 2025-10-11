@@ -18,6 +18,13 @@ import kotlinx.coroutines.launch
 class HousesListViewModel (application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application) // Получаем экземпляр БД
     private val houseDao = database.houseDao() // Получаем DAO из экземпляра БД
+    private val _showDialog = MutableStateFlow(false)
+    val showDialog: StateFlow<Boolean> = _showDialog.asStateFlow()
+
+    fun onShowDialogChange(show: Boolean) {
+        _showDialog.value = show
+    }
+
 
     // Эта часть теперь будет работать правильно, так как getAllHouses() возвращает Flow
     val houses: StateFlow<List<House>> = houseDao.getAllHouses()

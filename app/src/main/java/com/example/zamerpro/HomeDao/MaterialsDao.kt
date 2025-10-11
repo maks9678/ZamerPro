@@ -28,7 +28,7 @@ interface MaterialsDao {
      * @param id Уникальный ID материала.
      */
     @Query("SELECT * FROM materials WHERE id = :id")
-    fun getMaterialById(id: Int): Flow<HomeSupplies>
+    fun getMaterialById(id: Int): Flow<Material>
 
     /**
      * Добавляет новый материал в базу данных.
@@ -43,11 +43,11 @@ interface MaterialsDao {
      * Room находит нужную запись по PrimaryKey (полю 'id') объекта material.
      */
     @Update
-    suspend fun update(material: HomeSupplies)
+    suspend fun update(material: Material)
 
     /**
      * Удаляет материал из базы данных.
      */
     @Delete
-    suspend fun delete(material: HomeSupplies)
+    suspend fun delete(material: Material)
 }

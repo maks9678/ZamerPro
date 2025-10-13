@@ -41,8 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.zamerpro.House
-import com.example.zamerpro.Room
+import com.example.zamerpro.Class.House
+import com.example.zamerpro.Class.Room
 import com.example.zamerpro.room.NEW_ROOM_RESULT_KEY
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 import com.example.zamerpro.room.UPDATED_ROOM_RESULT_KEY

@@ -7,10 +7,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.example.zamerpro.House
-import com.example.zamerpro.HouseWithRooms
+import com.example.zamerpro.Class.House
+import com.example.zamerpro.Class.HouseWithRooms
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
 
 @Dao
 interface HomeDao {

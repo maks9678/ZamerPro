@@ -7,9 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zamerpro.HomeDao.HomeDao
 import com.example.zamerpro.HomeDao.MaterialsDao
-import com.example.zamerpro.House
-import com.example.zamerpro.HomeSupplies
-import com.example.zamerpro.Material
+import com.example.zamerpro.Class.House
+import com.example.zamerpro.Class.HomeSupplies
+import com.example.zamerpro.Class.Material
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -72,7 +72,6 @@ class MaterialsViewModel(
         }
     }
 
-    // Эта функция теперь возвращает список CalculatedMaterial
     private fun getCalculatedMaterials(currentHouse: House): List<CalculatedMaterial> {
         return listOf(
             CalculatedMaterial("Серпянка", "${calculationSerpyanka(currentHouse)} м"),
@@ -86,45 +85,30 @@ class MaterialsViewModel(
         )
     }
 
-    fun calculationFugen(currentHouse: House): Int {
+    private fun calculationFugen(currentHouse: House): Int {
         val wallExpenditureFugen = currentHouse.totalWallArea / 100
         val windowExpenditureFugen = currentHouse.totalWindowMetre / 50
         return wallExpenditureFugen + windowExpenditureFugen
     }
 
-    fun calculationPrimer(currentHouse: House): Int {
+    private fun calculationPrimer(currentHouse: House): Int {
         val wallExpenditurePrimer = currentHouse.totalWallArea / 100
         return wallExpenditurePrimer
     }
 
-    fun calculationSerpyanka(currentHouse: House): Int {
+    private fun calculationSerpyanka(currentHouse: House): Int {
         val wallExpenditureSerpyanka = currentHouse.totalWallArea * 1.5
         return wallExpenditureSerpyanka.toInt()
     }
 
-    fun calculationPutty(currentHouse: House): Int {
+    private fun calculationPutty(currentHouse: House): Int {
         val wallExpenditurePutty = currentHouse.totalWallArea * 2 / 25
         return wallExpenditurePutty
     }
 
-    fun calculationGrindingWheels(currentHouse: House): Int {
+    private fun calculationGrindingWheels(currentHouse: House): Int {
         val wallExpenditureGrindingWheels = currentHouse.totalWallArea / 20
         return wallExpenditureGrindingWheels
     }
 
-    fun getMaterials(currentHouse: House): HomeSupplies {
-        val material = HomeSupplies(
-            plasticCorners = 0,
-            windowJoining = 0,
-            serpyanka = calculationSerpyanka(currentHouse),
-            fugen = calculationFugen(currentHouse),
-            primer = calculationPrimer(currentHouse),
-            putty = calculationPutty(currentHouse),
-            grindingWheels = calculationGrindingWheels(currentHouse),
-            listOfMaterials = emptyList(),
-            extraMaterial = 0,
-            houseId = currentHouse.id
-        )
-        return material
-    }
 }

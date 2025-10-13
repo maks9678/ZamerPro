@@ -1,4 +1,4 @@
-package com.example.zamerpro
+package com.example.zamerpro.Main
 
 import android.annotation.SuppressLint
 import android.app.Application
@@ -23,15 +23,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import com.example.zamerpro.MaterialsList.MaterialsListScreen
+import com.example.zamerpro.BottomNavItem
 import com.example.zamerpro.homes.AppViewModelProvider
-import com.example.zamerpro.homes.HousesListScreen
 import com.example.zamerpro.homes.HousesListViewModel
-import kotlinx.parcelize.Experimental
+
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable

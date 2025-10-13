@@ -1,4 +1,4 @@
-package com.example.zamerpro
+package com.example.zamerpro.Main
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -12,11 +12,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.zamerpro.BottomNavItem
 import com.example.zamerpro.MaterialsList.MATERIALS_LIST_SCREEN_ROUTE
 import com.example.zamerpro.MaterialsList.MaterialsListScreen
 import com.example.zamerpro.home.HOUSE_SCREEN_ROUTE
 import com.example.zamerpro.home.HouseScreen
-import com.example.zamerpro.homes.HOUSES_LIST_SCREEN_ROUTE
 import com.example.zamerpro.homes.HousesListScreen
 import com.example.zamerpro.materials.MaterialsScreen
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
@@ -61,8 +61,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
-
-
                         // 2. Экран одного дома (куда мы переходим из списка домов)
                         composable(
                             route = "$HOUSE_SCREEN_ROUTE/{houseId}",
@@ -115,9 +113,20 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val houseId = backStackEntry.arguments?.getString("houseId")
                             if (houseId != null) {
-                                // ЭТОТ ЭКРАН ВЫ НАЗВАЛИ MaterialsListScreen, НО, СКОРЕЕ ВСЕГО, ОН - MaterialsScreen.
-                                // Если у вас действительно два экрана для материалов, убедитесь, что вызываете нужный.
-                                // Судя по названию, он показывает материалы для конкретного дома.
+                                MaterialsScreen(
+                                    navController = navController,
+                                    houseId = houseId
+                                )
+                            } else {
+                                navController.popBackStack()
+                            }
+                        }
+                        //5. экран отображения материалов для конкретного дома
+                        composable(
+                            route = "MATERIAL_SCREEN_ROUTE/{houseId}",
+                            arguments = listOf(navArgument("houseId"){type = NavType.StringType})){backStackEntry->
+                            val houseId = backStackEntry.arguments?.getString("houseId")
+                            if (houseId != null) {
                                 MaterialsScreen(
                                     navController = navController,
                                     houseId = houseId

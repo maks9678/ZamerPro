@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,7 +29,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.zamerpro.HomeDao.AppDatabase
-import com.example.zamerpro.Material
+import com.example.zamerpro.Class.Material
 
 @Composable
 fun MaterialsScreen(
@@ -64,7 +65,16 @@ fun MaterialsScreenIternal(
     customMaterials: List<Material>
 ) {
     Scaffold(
-        topBar = { TopAppBar(modifier = Modifier.fillMaxWidth(), title = { Text(text = houseName) }) }
+        topBar = {
+            TopAppBar(
+                modifier = Modifier.fillMaxWidth(),
+                title = { Text(text = "Материалы $houseName") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor= MaterialTheme.colorScheme.primary,
+                    titleContentColor= MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )) }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -76,12 +86,6 @@ fun MaterialsScreenIternal(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (calculatedMaterials.isNotEmpty()) {
-                item {
-                    Text(
-                        "Рассчитанные материалы",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                }
                 items(calculatedMaterials, key = { it.name }) { material ->
                     // Новый Composable для этого типа данных
                     CalculatedMaterialItem(material)
@@ -100,13 +104,6 @@ fun MaterialsScreenIternal(
                 items(customMaterials, key = { it.id }) { material ->
                     // Ваш существующий MaterialItem
                     MaterialItem(material)
-                }
-            }
-
-            // --- Сообщение, если оба списка пусты ---
-            if (calculatedMaterials.isEmpty() && customMaterials.isEmpty()) {
-                item {
-                    Text("Для этого объекта еще нет материалов.")
                 }
             }
         }

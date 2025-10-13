@@ -3,12 +3,12 @@ package com.example.zamerpro.HomeDao
 import android.content.Context
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.zamerpro.House
+import com.example.zamerpro.Class.House
 import androidx.room.TypeConverters
-import com.example.zamerpro.Converters
-import com.example.zamerpro.Material
-import com.example.zamerpro.Opening
-import com.example.zamerpro.Room
+import com.example.zamerpro.Class.Converters
+import com.example.zamerpro.Class.Material
+import com.example.zamerpro.Class.Opening
+import com.example.zamerpro.Class.Room
 
 @Database(entities = [House::class, Room::class, Opening::class, Material::class], version = 6, exportSchema = false)
 @TypeConverters(Converters::class)

@@ -1,4 +1,4 @@
-package com.example.zamerpro
+package com.example.zamerpro.Class
 
 import android.os.Parcelable
 import androidx.room.Embedded

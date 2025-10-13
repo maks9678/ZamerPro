@@ -7,9 +7,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.example.zamerpro.Opening
-import com.example.zamerpro.Room
-import com.example.zamerpro.RoomWithObjects
+import com.example.zamerpro.Class.Opening
+import com.example.zamerpro.Class.Room
+import com.example.zamerpro.Class.RoomWithObjects
 import kotlinx.coroutines.flow.Flow
 @Dao
 interface RoomDao {

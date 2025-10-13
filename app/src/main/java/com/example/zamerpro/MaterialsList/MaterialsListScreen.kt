@@ -8,11 +8,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -25,12 +29,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.zamerpro.House
-import com.example.zamerpro.home.HOUSE_SCREEN_ROUTE
+import com.example.zamerpro.Class.House
 import com.example.zamerpro.homes.AppViewModelProvider
 import com.example.zamerpro.homes.HousesListViewModel
 
@@ -60,8 +64,11 @@ fun MaterialsListScreen(
         viewModel(factory = AppViewModelProvider(LocalContext.current.applicationContext as Application))
     val houses by viewModel.houses.collectAsState()
 
-    MaterialsListScreenInternal(houses = houses, modifier = modifier, onHouseClick = { house ->
-        navController.navigate("$HOUSE_SCREEN_ROUTE/${house.id}")
+    MaterialsListScreenInternal(
+        houses = houses,
+        modifier = modifier,
+        onHouseClick = { house ->
+        navController.navigate("$MATERIALS_LIST_SCREEN_ROUTE/${house.id}")
     })
 }
 
@@ -74,20 +81,44 @@ fun MaterialListItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .padding(4.dp)
+            .height(130.dp)
             .clickable(onClick = onClick),
-    ) {
+        // 1. Добавляем тени (elevation)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp // Тень в обычном состоянии
+        ),
+        // 2. Слегка скругляем углы
+        shape = MaterialTheme.shapes.medium,
+        // 3. Можно задать цвета, если нужно (по умолчанию они из темы)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant, // Чуть другой фон
+        )
+    ){
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(text = house.name, style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.padding(vertical = 8.dp))
-            Text(text = house.totalWallArea.toString(), style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.padding(vertical = 8.dp))
             Text(
-                text = house.totalWindowMetre.toString(),
-                style = MaterialTheme.typography.bodyMedium
+                text = house.name,
+                style = MaterialTheme.typography.titleMedium,
+                // Чтобы длинные названия красиво переносились
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(text ="Квадратура: ${house.totalWallArea}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                text = "Метраж: ${house.totalWindowMetre}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -124,7 +155,7 @@ fun MaterialsListScreenInternal(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (houses.isEmpty()) {

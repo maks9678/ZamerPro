@@ -3,7 +3,7 @@ package com.example.zamerpro.MaterialsList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zamerpro.HomeDao.HomeDao
-import com.example.zamerpro.House
+import com.example.zamerpro.Class.House
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

@@ -55,4 +55,19 @@ interface RoomDao {
      */
     @Query("DELETE FROM openings WHERE roomId = :roomId")
     suspend fun deleteOpeningsByRoomId(roomId: Int)
+
+    @Transaction
+    suspend fun saveRoomWithOpenings(room: Room, openings: List<Opening>) {
+        // 1. Вставляем комнату и получаем ее реальный ID (новый или существующий)
+        val savedRoomId = insertRoom(room)
+
+        // 2. Сначала удаляем все старые проемы для этой комнаты
+        // Это гарантирует, что не останется "мусора" от предыдущего сохранения.
+        deleteOpeningsByRoomId(savedRoomId.toInt())
+
+        // 3. Вставляем новый список проемов, присвоив им правильный roomId
+        openings.forEach { opening ->
+            insertOpening(opening.copy(roomId = savedRoomId.toInt()))
+        }
+    }
 }

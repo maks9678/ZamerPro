@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -297,7 +298,7 @@ class RoomViewModelFactory(
         if (modelClass.isAssignableFrom(RoomViewModel::class.java)) {
             val db = AppDatabase.getDatabase(application)
             @Suppress("UNCHECKED_CAST")
-            return RoomViewModel(houseId, roomId, db.roomDao()) as T
+            return RoomViewModel(houseId, roomId, db) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
@@ -311,9 +312,13 @@ fun RoomInputScreen(
     roomId: Int?,
     navController: NavController,
 ) {
+    val backStackEntry = remember(navController.currentBackStackEntry) {
+        navController.getBackStackEntry("$ROOM_INPUT_ROUTE/{houseId}?roomId={roomId}")
+    }
+
     val application = LocalContext.current.applicationContext as Application
     val viewModel: RoomViewModel = viewModel(factory = RoomViewModelFactory(houseId, roomId, application),
-        viewModelStoreOwner = navController.currentBackStackEntry!!)
+        viewModelStoreOwner = backStackEntry)
 
     // 1. Получаем CoroutineScope для асинхронных операций
     val scope = rememberCoroutineScope()
@@ -354,13 +359,8 @@ fun RoomInputScreen(
         onCustomWallHeightChange = viewModel::updateCustomWallHeight,
         isSaveButtonEnabled = true,
         onSaveClick = {
-            // 2. Запускаем корутину для сохранения
             scope.launch {
-                // 3. Вызываем новую suspend-функцию
                 viewModel.saveRoomData()
-
-                // 4. После завершения сохранения возвращаемся на предыдущий экран
-                // Ничего передавать не нужно, т.к. предыдущий экран сам обновит данные из БД
                 withContext(Dispatchers.Main) {
                     navController.popBackStack()
                 }

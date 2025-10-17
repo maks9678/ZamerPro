@@ -196,7 +196,7 @@ fun HousesListScreenInternal(
             // Контент экрана (список домов или текст)
             if (houses.isEmpty()) {
                 Text(
-                    modifier = Modifier.padding(horizontal = 8.dp),
+                    modifier = Modifier.padding(16.dp),
                     textAlign = TextAlign.Center,
                     text = "У вас пока нет объектов. Нажмите '+' для создания."
                 )
@@ -204,7 +204,7 @@ fun HousesListScreenInternal(
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     contentPadding = PaddingValues(8.dp), // Добавляем отступ снизу, чтобы FAB не перекрывал последний элемент
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.Top,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 )
                 {
@@ -268,19 +268,28 @@ fun HouseListItem(
                 .padding(8.dp)
                 .fillMaxWidth(),
 
-        ) {
-            Text(house.name,
+            ) {
+            Text(
+                house.name,
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
-                textAlign = TextAlign.Center)
-            Row (modifier = Modifier,
+                textAlign = TextAlign.Center,
+            )
+            Row(
+                modifier = Modifier,
                 horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Изменен: ${formatTimestamp(house.lastModified)}",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Column() {
+                    Text(text = "Квадратура: ${house.totalWallArea}")
+                    Text(text = "Метраж: ${house.totalWindowMetre}")
+                    Text(
+                        "Изменен: ${formatTimestamp(house.lastModified)}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
 
+
+                }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Filled.Delete,

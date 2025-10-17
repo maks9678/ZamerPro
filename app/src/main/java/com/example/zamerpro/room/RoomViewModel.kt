@@ -1,12 +1,16 @@
 package com.example.zamerpro.room
 
+import androidx.compose.animation.core.copy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.withTransaction
 import com.example.zamerpro.HomeDao.RoomDao
 import com.example.zamerpro.Class.ItemDimension
 import com.example.zamerpro.Class.Opening
 import com.example.zamerpro.Class.OpeningType
 import com.example.zamerpro.Class.Room
+import com.example.zamerpro.HomeDao.AppDatabase
+import com.example.zamerpro.HomeDao.HomeDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,9 +26,11 @@ import kotlinx.coroutines.withContext
 class RoomViewModel(
     private val houseId: String,
     val currentRoomId: Int?,
-    private val roomDao: RoomDao
+    private val db: AppDatabase
 ) : ViewModel() {
 
+    val homeDao = db.houseDao()
+    val roomDao = db.roomDao()
     private val _roomName = MutableStateFlow("")
     val roomName: StateFlow<String> = _roomName.asStateFlow()
 
@@ -281,34 +287,54 @@ class RoomViewModel(
     }
 
     suspend fun saveRoomData() {
-        // Проверка, что данные валидны, перед сохранением
-        if (!isDataValid.value) return
+        val roomDataPair = prepareRoomForSave() ?: return
+        val roomToSave = roomDataPair.first
+        val openingsToSave = roomDataPair.second
 
-        var finalRoomName = _roomName.value.trim()
+        // ✅ Запускаем транзакцию на уровне базы данных
+        db.withTransaction {
+            // Вся эта логика выполнится атомарно
 
-        // 1. Логика автоматического именования
-        if (finalRoomName.isBlank()) {
-            val existingRooms = roomDao.getRoomsForHouseSuspend(houseId)
-            val roomCount = existingRooms.count {
-                // Считаем комнаты с названием "Комната X"
-                it.name.startsWith("Комната ") && (currentRoomId == null || it.id != currentRoomId)
+            // 1. Сохраняем комнату и ее проемы (как в Варианте 1)
+            val savedRoomId = roomDao.insertRoom(roomToSave)
+            roomDao.deleteOpeningsByRoomId(savedRoomId.toInt())
+            openingsToSave.forEach { opening ->
+                roomDao.insertOpening(opening.copy(roomId = savedRoomId.toInt()))
             }
-            finalRoomName = "Комната ${roomCount + 1}"
+
+            // 2. Сразу же обновляем дом в той же транзакции
+            val rooms = roomDao.getRoomsForHouseSuspend(houseId)
+            val totalWallArea = rooms.sumOf { it.wallArea }.toInt()
+            val totalWindowMetre = rooms.sumOf { it.windowMetre }.toInt()
+
+            val houseToUpdate = homeDao.getHouseByIdSuspend(houseId)
+            houseToUpdate?.let {
+                homeDao.updateHouse(
+                    it.copy(
+                        totalWallArea = totalWallArea,
+                        totalWindowMetre = totalWindowMetre
+                    )
+                )
+            }
+            updateHouseTotals()
         }
-        val roomToSave = Room(
-            id = currentRoomId ?: 0, // Room решит, вставить или обновить
-            houseId = houseId,
-            name = finalRoomName, // <-- Используем финальное имя
-            length = _roomLength.value.toDoubleOrNull() ?: 0.0,
-            width = _roomWidth.value.toDoubleOrNull() ?: 0.0,
-            height = _roomHeight.value.toDoubleOrNull() ?: 0.0,
-            floorArea = _roomArea.value,
-            wallArea = 0.0,
-            windowMetre = _roomMetre.value,
-        )
+    }
 
-        roomDao.insertRoom(roomToSave)
+    // ✅ Новая приватная функция для обновления родительского дома
+    private suspend fun updateHouseTotals() {
+        val rooms = roomDao.getRoomsForHouseSuspend(houseId) // Получаем свежий список комнат
+        val totalWallArea = rooms.sumOf { it.wallArea }.toInt()
+        val totalWindowMetre = rooms.sumOf { it.windowMetre }.toInt()
 
+        val houseToUpdate = homeDao.getHouseByIdSuspend(houseId)
+        houseToUpdate?.let {
+            homeDao.updateHouse(
+                it.copy(
+                    totalWallArea = totalWallArea,
+                    totalWindowMetre = totalWindowMetre
+                )
+            )
+        }
     }
 
     fun onRoomTypeSelected(roomType: TypeRoom) {

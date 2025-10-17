@@ -41,32 +41,8 @@ fun MainScreen(
     val currentDestination = navBackStackEntry?.destination
 
     Scaffold(
-        topBar = {
-            // Показываем TopAppBar в зависимости от текущего экрана
-            if (currentDestination?.route == BottomNavItem.Houses.route) {
-                TopAppBar(
-                    title = { Text("Мои Объекты") },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                )
-            }
-            // Здесь можно добавить TopAppBar для других экранов
-            // else if (currentDestination?.route == BottomNavItem.Materials.route) { ... }
-        },
         bottomBar = { BottomNavigationBar(navController = navController) },
-        floatingActionButton = {
-            // Показываем FAB только на экране "Объекты"
-            if (currentDestination?.route == BottomNavItem.Houses.route) {
-                FloatingActionButton(onClick = {
-                    // Вызываем метод из ViewModel для показа диалога
-                    housesViewModel.onShowDialogChange(true)
-                }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Создать новый объект")
-                }
-            }
-        }
+
     ) { innerPadding ->
         // Отображаем переданный контент с правильными отступами
         content(Modifier.padding(innerPadding))

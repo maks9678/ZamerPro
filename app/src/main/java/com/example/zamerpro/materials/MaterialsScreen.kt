@@ -31,6 +31,7 @@ import androidx.navigation.NavController
 import com.example.zamerpro.HomeDao.AppDatabase
 import com.example.zamerpro.Class.Material
 
+const val MATERIAL_SCREEN_ROUTE = "materialScreen"
 @Composable
 fun MaterialsScreen(
     modifier: Modifier = Modifier,
@@ -54,7 +55,15 @@ fun MaterialsScreen(
 @Preview(showBackground = true)
 @Composable
 fun PreviewMaterialsScreen() {
-    MaterialsScreenIternal("Дом", listOf(CalculatedMaterial("fsdg", "fsdg")), listOf())
+    MaterialsScreenIternal(
+        "Дом",
+        listOf
+            (
+            CalculatedMaterial("fsdg", "fsdg"),
+            CalculatedMaterial("fsddfg", "fsdfsdg")
+        ),
+        listOf()
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,11 +79,13 @@ fun MaterialsScreenIternal(
                 modifier = Modifier.fillMaxWidth(),
                 title = { Text(text = "Материалы $houseName") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor= MaterialTheme.colorScheme.primary,
-                    titleContentColor= MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                     actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )) }
+                )
+            )
+        }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -124,7 +135,7 @@ fun CalculatedMaterialItem(material: CalculatedMaterial) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewMaterialsItem() {
-    MaterialItem(Material(name = "fsdg", quantity = 0, unit = "", houseId = "0"))
+    MaterialItem(Material(name = "serpyanca", quantity = 1, unit = "m", houseId = "3"))
 }
 
 @Composable

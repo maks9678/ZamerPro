@@ -18,6 +18,7 @@ import com.example.zamerpro.MaterialsList.MaterialsListScreen
 import com.example.zamerpro.home.HOUSE_SCREEN_ROUTE
 import com.example.zamerpro.home.HouseScreen
 import com.example.zamerpro.homes.HousesListScreen
+import com.example.zamerpro.materials.MATERIAL_SCREEN_ROUTE
 import com.example.zamerpro.materials.MaterialsScreen
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 import com.example.zamerpro.room.RoomInputScreen
@@ -123,7 +124,7 @@ class MainActivity : ComponentActivity() {
                         }
                         //5. экран отображения материалов для конкретного дома
                         composable(
-                            route = "MATERIAL_SCREEN_ROUTE/{houseId}",
+                            route = "$MATERIAL_SCREEN_ROUTE/{houseId}",
                             arguments = listOf(navArgument("houseId"){type = NavType.StringType})){backStackEntry->
                             val houseId = backStackEntry.arguments?.getString("houseId")
                             if (houseId != null) {

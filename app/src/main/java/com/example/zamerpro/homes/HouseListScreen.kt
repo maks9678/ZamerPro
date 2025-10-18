@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,15 +41,21 @@ import com.example.zamerpro.Class.House
 import com.example.zamerpro.home.HOUSE_SCREEN_ROUTE
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAbsoluteAlignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import kotlinx.coroutines.launch
 import org.intellij.lang.annotations.JdkConstants
 
 const val HOUSES_LIST_SCREEN_ROUTE = "housesListScreen"
@@ -243,7 +250,7 @@ fun HousesListScreenInternal(
     }
 }
 
-
+@ExperimentalMaterial3Api
 @Composable
 fun HouseListItem(
     house: House,
@@ -251,6 +258,9 @@ fun HouseListItem(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDialogDelete by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -266,23 +276,27 @@ fun HouseListItem(
         Column(
             modifier = Modifier
                 .padding(8.dp)
-                .fillMaxWidth(),
+                .fillMaxSize(),
 
             ) {
             Text(
                 house.name,
+                modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
                 textAlign = TextAlign.Center,
             )
+            Spacer(modifier = Modifier.weight(1f))
             Row(
-                modifier = Modifier,
-                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
-                Column() {
-                    Text(text = "Квадратура: ${house.totalWallArea}")
-                    Text(text = "Метраж: ${house.totalWindowMetre}")
+                Column {
+                    Text(text = "Квадратура: ${house.totalWallArea}",
+                        style = MaterialTheme.typography.bodyLarge)
+                    Text(text = "Метраж: ${house.totalWindowMetre}",
+                        style = MaterialTheme.typography.bodyLarge)
                     Text(
                         "Изменен: ${formatTimestamp(house.lastModified)}",
                         style = MaterialTheme.typography.bodySmall
@@ -290,12 +304,84 @@ fun HouseListItem(
 
 
                 }
-                IconButton(onClick = onDelete) {
+                IconButton(onClick = {showDialogDelete = true},
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.error )) {
                     Icon(
                         Icons.Filled.Delete,
                         contentDescription = "Удалить объект",
                         tint = MaterialTheme.colorScheme.error
+
                     )
+                }
+            }
+        }
+        if (showDialogDelete) {
+            ModalBottomSheet(
+                onDismissRequest = { showDialogDelete = false },
+                sheetState = sheetState
+            ) {
+                // Содержимое вашего BottomSheet
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Заголовок
+                    Text(
+                        text = "Подтвердите удаление",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    // Поясняющий текст
+                    Text(
+                        text = "Вы уверены, что хотите удалить объект '${house.name}'? Это действие нельзя будет отменить.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Кнопка отмены
+                        Button(
+                            onClick = {
+                                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                    if (!sheetState.isVisible) {
+                                        showDialogDelete = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Text("Отмена")
+                        }
+                        // Кнопка подтверждения удаления
+                        Button(
+                            onClick = {
+                                // Закрываем BottomSheet
+                                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                    if (!sheetState.isVisible) {
+                                        showDialogDelete = false
+                                    }
+                                }
+                                // Вызываем колбэк удаления
+                                onDelete()
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        ) {
+                            Text("Удалить")
+                        }
+                    }
                 }
             }
         }

@@ -1,6 +1,8 @@
 package com.example.zamerpro.home
 
+import android.R.attr.onClick
 import android.app.Application
+import androidx.activity.result.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -24,20 +27,28 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.view.isVisible
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -46,44 +57,23 @@ import com.example.zamerpro.Class.Room
 import com.example.zamerpro.room.NEW_ROOM_RESULT_KEY
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 import com.example.zamerpro.room.UPDATED_ROOM_RESULT_KEY
+import kotlinx.coroutines.launch
 
 const val HOUSE_SCREEN_ROUTE = "houseScreen"
 
-val previewsRoom = listOf(Room(
+val previewsRoom = listOf(
+    Room(
         name = "Test",
-width = 4.0,
-length = 5.0,
-height = 2.5,
-floorArea = 20.0,
-wallArea = 45.0,
-windowMetre = 0.0,
-houseId = "preview_house"
-) )
+        width = 4.0,
+        length = 5.0,
+        height = 2.5,
+        floorArea = 20.0,
+        wallArea = 45.0,
+        windowMetre = 0.0,
+        houseId = "preview_house"
+    )
+)
 val previewHouse = House(id = "preview_house_id_123", name = "Дом для Превью")
-
-@Preview(showBackground = true, name = "HouseScreen с данными")
-@Composable
-fun HouseScreenWithDataPreview() {
-    MaterialTheme {
-        // Упрощенная версия HouseScreen или версия, принимающая данные напрямую
-        // Вместо того чтобы создавать полноценный ViewModel, который лезет в БД,
-        // мы можем передать данные напрямую в Composable для превью.
-        // Для этого нужно будет немного изменить HouseScreen, чтобы он мог принимать
-        // список комнат и дом как параметры (с дефолтными значениями, получаемыми из ViewModel).
-
-        // Вариант А: Модифицировать HouseScreen (показан ниже)
-        HouseScreenInternal( // Назовем внутренний Composable иначе
-            navController = rememberNavController(),
-            currentHouse = previewHouse,
-            roomsInHouse = previewsRoom,
-            totalArea = previewsRoom.sumOf { it.wallArea }.toInt(),
-            totalMetre = previewsRoom.sumOf { it.windowMetre}.toInt(),
-            onAddRoomClicked = {},
-            onRemoveRoomClicked = {},
-            onEditRoomClicked = {}
-        )
-    }
-}
 
 
 @Composable
@@ -119,7 +109,9 @@ fun HouseScreen(
     LaunchedEffect(updatedRoomResult?.value) {
         updatedRoomResult?.value?.let { room ->
             viewModel.updateRoom(room) // Предполагаем, что в ViewModel будет такой метод
-            navController.currentBackStackEntry?.savedStateHandle?.remove<Room>(UPDATED_ROOM_RESULT_KEY)
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Room>(
+                UPDATED_ROOM_RESULT_KEY
+            )
         }
     }
 
@@ -133,6 +125,7 @@ fun HouseScreen(
             navController.navigate("$ROOM_INPUT_ROUTE/$houseId") // Передаем houseId
         },
         onRemoveRoomClicked = { room ->
+
             viewModel.removeRoom(room)
         },
         onEditRoomClicked = { room ->
@@ -265,7 +258,7 @@ fun HouseScreenInternal(
         }
     }
 }
-
+@ExperimentalMaterial3Api
 @Composable
 fun RoomInHouseItem(
     room: Room,
@@ -273,6 +266,11 @@ fun RoomInHouseItem(
     onItemClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDialogDelete by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
+    // 3. CoroutineScope для асинхронного закрытия
+    val scope = rememberCoroutineScope()
+
     Card(
         modifier = modifier
             .fillMaxWidth(0.95f)
@@ -303,12 +301,81 @@ fun RoomInHouseItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = onRemoveClick) {
+            IconButton(onClick = { showDialogDelete = true }) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
                     contentDescription = "Удалить комнату ${room.name}", // Более описательный contentDescription
                     tint = MaterialTheme.colorScheme.error // Цвет ошибки для кнопки удаления
                 )
+            }
+        }
+    }
+    if (showDialogDelete) {
+        ModalBottomSheet(
+            onDismissRequest = { showDialogDelete = false },
+            sheetState = sheetState
+        ) {
+            // Содержимое вашего BottomSheet
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Заголовок
+                Text(
+                    text = "Подтвердите удаление",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                // Поясняющий текст
+                Text(
+                    text = "Вы уверены, что хотите удалить комнату '${room.name}'? Это действие нельзя будет отменить.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                // Ряд с кнопками
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Кнопка отмены
+                    Button(
+                        onClick = {
+                            scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                if (!sheetState.isVisible) {
+                                    showDialogDelete = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
+                        Text("Отмена")
+                    }
+                    // Кнопка подтверждения удаления
+                    Button(
+                        onClick = {
+                            // Закрываем BottomSheet
+                            scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                if (!sheetState.isVisible) {
+                                    showDialogDelete = false
+                                }
+                            }
+                            // Вызываем колбэк удаления
+                            onRemoveClick()
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    ) {
+                        Text("Удалить")
+                    }
+                }
             }
         }
     }
@@ -324,6 +391,23 @@ fun HouseScreenEmptyPreview() {
             roomsInHouse = emptyList(),
             totalArea = 0,
             totalMetre = 0,
+            onAddRoomClicked = {},
+            onRemoveRoomClicked = {},
+            onEditRoomClicked = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "HouseScreen с данными")
+@Composable
+fun HouseScreenWithDataPreview() {
+    MaterialTheme {
+        HouseScreenInternal( // Назовем внутренний Composable иначе
+            navController = rememberNavController(),
+            currentHouse = previewHouse,
+            roomsInHouse = previewsRoom,
+            totalArea = previewsRoom.sumOf { it.wallArea }.toInt(),
+            totalMetre = previewsRoom.sumOf { it.windowMetre }.toInt(),
             onAddRoomClicked = {},
             onRemoveRoomClicked = {},
             onEditRoomClicked = {}

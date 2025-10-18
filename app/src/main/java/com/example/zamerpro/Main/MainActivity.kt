@@ -12,14 +12,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.zamerpro.BottomNavItem
-import com.example.zamerpro.MaterialsList.MATERIALS_LIST_SCREEN_ROUTE
-import com.example.zamerpro.MaterialsList.MaterialsListScreen
 import com.example.zamerpro.home.HOUSE_SCREEN_ROUTE
-import com.example.zamerpro.home.HouseScreen
+import com.example.zamerpro.home.HouseDetailsScreen
 import com.example.zamerpro.homes.HousesListScreen
-import com.example.zamerpro.materials.MATERIAL_SCREEN_ROUTE
-import com.example.zamerpro.materials.MaterialsScreen
 import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 import com.example.zamerpro.room.RoomInputScreen
 import com.example.zamerpro.ui.theme.ZamerProTheme
@@ -36,110 +31,62 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     // Главный NavController для всего приложения
-                    val navController = rememberNavController()
+                    val rootNavController = rememberNavController()
 
                     NavHost(
-                        navController = navController,
-                        startDestination = BottomNavItem.Houses.route // Новая стартовая точка
+                        navController = rootNavController,
+                        startDestination = "houses_list" // Стартуем со списка всех объектов
                     ) {
-                        // 1. Главный экран с нижней панелью
-                        composable(BottomNavItem.Houses.route) {
-                            // Оборачиваем HousesListScreen в MainScreen
-                            MainScreen(navController = navController) { modifier ->
-                                HousesListScreen(
-                                    navController = navController,
-                                    modifier = modifier // Передаем отступы
-                                )
-                            }
+                        // 1. Экран со списком ВСЕХ домов (без нижней панели)
+                        composable(route = "houses_list") {
+                            HousesListScreen(
+                                navController = rootNavController,
+                                // modifier теперь не нужен, так как нет Scaffold'а-обертки
+                            )
                         }
 
-                        composable(BottomNavItem.Materials.route) {
-                            // Оборачиваем MaterialsListScreen в MainScreen
-                            MainScreen(navController = navController) { modifier ->
-                                MaterialsListScreen(
-                                    navController = navController,
-                                    modifier = modifier // Передаем отступы
-                                )
-                            }
-                        }
-                        // 2. Экран одного дома (куда мы переходим из списка домов)
+                        // 2. Экран КОНКРЕТНОГО дома (который содержит вложенную навигацию)
                         composable(
                             route = "$HOUSE_SCREEN_ROUTE/{houseId}",
                             arguments = listOf(navArgument("houseId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val houseId = backStackEntry.arguments?.getString("houseId")
                             if (houseId != null) {
-                                HouseScreen(navController = navController, houseId = houseId)
-                            } else {
-                                // Если ID дома не передан, безопасно возвращаемся назад
-                                navController.popBackStack()
+                                // Этот экран теперь является контейнером с собственной нижней панелью
+                                HouseDetailsScreen(
+                                    rootNavController = rootNavController, // Для возврата назад или перехода на другие глобальные экраны
+                                    houseId = houseId
+                                )
                             }
                         }
 
-                        // 3. Экран для создания/редактирования комнаты
+                        // 3. Экран для создания/редактирования комнаты (без нижней панели)
                         composable(
-                            // Используем один маршрут для создания и редактирования.
-                            // roomId - необязательный параметр.
                             route = "$ROOM_INPUT_ROUTE/{houseId}?roomId={roomId}",
                             arguments = listOf(
                                 navArgument("houseId") { type = NavType.StringType },
                                 navArgument("roomId") {
-                                    type =
-                                        NavType.StringType // ID комнат тоже могут быть String (UUID)
-                                    nullable =
-                                        true          // Указываем, что он может отсутствовать
-                                    defaultValue = null
+                                    type = NavType.IntType
+                                    defaultValue = -1
                                 }
                             )
                         ) { backStackEntry ->
                             val houseId = backStackEntry.arguments?.getString("houseId")
-                            val roomId = backStackEntry.arguments?.getString("roomId")
+                            val roomId = backStackEntry.arguments?.getInt("roomId")
 
                             if (houseId != null) {
                                 RoomInputScreen(
-                                    navController = navController,
+                                    navController = rootNavController, // Используем главный контроллер
                                     houseId = houseId,
-                                    roomId = roomId?.toIntOrNull(),
+                                    roomId = if (roomId == -1) null else roomId,
                                 )
-                            } else {
-                                navController.popBackStack()
-                            }
-                        }
-
-                        // 4. Экран со списком материалов для ОДНОГО дома (заменил ваш HOUSES_LIST_SCREEN_ROUTE)
-                        // У него должен быть свой уникальный маршрут
-                        composable(
-                            route = "$MATERIALS_LIST_SCREEN_ROUTE/{houseId}",
-                            arguments = listOf(navArgument("houseId") { type = NavType.StringType })
-                        ) { backStackEntry ->
-                            val houseId = backStackEntry.arguments?.getString("houseId")
-                            if (houseId != null) {
-                                MaterialsScreen(
-                                    navController = navController,
-                                    houseId = houseId
-                                )
-                            } else {
-                                navController.popBackStack()
-                            }
-                        }
-                        //5. экран отображения материалов для конкретного дома
-                        composable(
-                            route = "$MATERIAL_SCREEN_ROUTE/{houseId}",
-                            arguments = listOf(navArgument("houseId"){type = NavType.StringType})){backStackEntry->
-                            val houseId = backStackEntry.arguments?.getString("houseId")
-                            if (houseId != null) {
-                                MaterialsScreen(
-                                    navController = navController,
-                                    houseId = houseId
-                                )
-                            } else {
-                                navController.popBackStack()
                             }
                         }
                     }
                 }
             }
         }
+
     }
 }
 

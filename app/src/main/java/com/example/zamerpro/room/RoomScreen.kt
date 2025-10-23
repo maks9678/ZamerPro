@@ -47,7 +47,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.zamerpro.HomeDao.AppDatabase
+import com.example.zamerpro.Dao.AppDatabase
 import com.example.zamerpro.Class.ItemDimension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

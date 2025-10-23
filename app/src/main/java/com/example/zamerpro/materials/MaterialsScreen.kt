@@ -28,7 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.zamerpro.HomeDao.AppDatabase
+import com.example.zamerpro.Dao.AppDatabase
 import com.example.zamerpro.Class.Material
 
 const val MATERIAL_SCREEN_ROUTE = "materialScreen"

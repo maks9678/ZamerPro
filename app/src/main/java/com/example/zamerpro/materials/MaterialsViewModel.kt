@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.zamerpro.HomeDao.HomeDao
-import com.example.zamerpro.HomeDao.MaterialsDao
+import com.example.zamerpro.Dao.HomeDao
+import com.example.zamerpro.Dao.MaterialsDao
 import com.example.zamerpro.Class.House
 import com.example.zamerpro.Class.Material
 import kotlinx.coroutines.flow.SharingStarted

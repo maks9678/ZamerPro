@@ -1,4 +1,4 @@
-package com.example.zamerpro.HomeDao
+package com.example.zamerpro.Dao
 
 import android.content.Context
 import androidx.room.Database

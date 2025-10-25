@@ -288,11 +288,8 @@ class RoomViewModel(
         val roomToSave = roomDataPair.first
         val openingsToSave = roomDataPair.second
 
-        // ✅ Запускаем транзакцию на уровне базы данных
         db.withTransaction {
-            // Вся эта логика выполнится атомарно
 
-            // 1. Сохраняем комнату и ее проемы (как в Варианте 1)
             val savedRoomId = roomDao.insertRoom(roomToSave)
             roomDao.deleteOpeningsByRoomId(savedRoomId.toInt())
             openingsToSave.forEach { opening ->

@@ -139,7 +139,7 @@ fun HouseScreen(
 @Composable
 fun HouseScreenInternal(
     navController: NavController, // NavController все еще может быть нужен для навигации с кнопок
-    currentHouse: House?,
+    currentHouse: House,
     roomsInHouse: List<Room>,
     totalArea: Int,
     totalMetre: Int,
@@ -189,7 +189,7 @@ fun HouseScreenInternal(
                                 style = MaterialTheme.typography.titleLarge
                             )
                             Text(
-                                text = "$totalArea м²",
+                                text = "${currentHouse.totalWallArea} м²",
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(top = 4.dp)

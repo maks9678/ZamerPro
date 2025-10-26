@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Architecture
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,7 +29,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.zamerpro.Price.PRICE_SCREEN_ROUTE
+import com.example.zamerpro.Price.Price
+import com.example.zamerpro.Price.PriceScreen
+import com.example.zamerpro.materials.MATERIAL_SCREEN_ROUTE
 import com.example.zamerpro.materials.MaterialsScreen
+import com.example.zamerpro.room.ROOM_INPUT_ROUTE
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +95,12 @@ fun HouseDetailsScreen(
                     houseId = houseId
                 )
             }
+            composable(HouseDetailsNavItem.Price.route){
+                PriceScreen(
+                    rootNavController,
+                    houseId
+                )
+            }
         }
     }
 }
@@ -128,15 +140,20 @@ sealed class HouseDetailsNavItem(val route: String, val title: String, val icon:
     // Маршрут для списка комнат конкретного дома
     // Мы добавим houseId к этому маршруту при навигации
     object Rooms : HouseDetailsNavItem(
-        route = "rooms_list",
+        route = ROOM_INPUT_ROUTE,
         title = "Комнаты",
         icon = Icons.Default.Architecture
     )
 
     // Маршрут для списка материалов конкретного дома
     object Materials : HouseDetailsNavItem(
-        route = "house_materials_list",
+        route = MATERIAL_SCREEN_ROUTE,
         title = "Материалы",
         icon = Icons.Default.Construction
+    )
+    object Price: HouseDetailsNavItem(
+        route = PRICE_SCREEN_ROUTE,
+        title = "Стоимость работ",
+        icon = Icons.Default.AttachMoney
     )
 }

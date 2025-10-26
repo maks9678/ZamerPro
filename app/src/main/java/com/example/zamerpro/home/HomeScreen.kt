@@ -73,7 +73,7 @@ val previewsRoom = listOf(
         houseId = "preview_house"
     )
 )
-val previewHouse = House(id = "preview_house_id_123", name = "Дом для Превью")
+val previewHouse = House(id = "preview_house_id_123", name = "Дом для Превью", totalWallArea = 100, totalWindowMetre = 50)
 
 
 @Composable
@@ -114,35 +114,31 @@ fun HouseScreen(
             )
         }
     }
+        HouseScreenInternal(
+            navController = navController,
+            currentHouse = currentHouse,
+            roomsInHouse = roomsInHouse,
+            onAddRoomClicked = {
+                navController.navigate("$ROOM_INPUT_ROUTE/$houseId") // Передаем houseId
+            },
+            onRemoveRoomClicked = { room ->
 
-    HouseScreenInternal(
-        navController = navController,
-        currentHouse = currentHouse,
-        roomsInHouse = roomsInHouse,
-        totalArea = currentHouse?.totalWallArea ?: 0,
-        totalMetre = currentHouse?.totalWindowMetre ?: 0,
-        onAddRoomClicked = {
-            navController.navigate("$ROOM_INPUT_ROUTE/$houseId") // Передаем houseId
-        },
-        onRemoveRoomClicked = { room ->
+                viewModel.removeRoom(room)
+            },
+            onEditRoomClicked = { room ->
+                navController.navigate("$ROOM_INPUT_ROUTE/${room.houseId}?roomId=${room.id}")
+            }
+        )
+    }
 
-            viewModel.removeRoom(room)
-        },
-        onEditRoomClicked = { room ->
-            navController.navigate("$ROOM_INPUT_ROUTE/${room.houseId}?roomId=${room.id}")
-        }
-    )
-}
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HouseScreenInternal(
     navController: NavController, // NavController все еще может быть нужен для навигации с кнопок
-    currentHouse: House,
+    currentHouse: House?,
     roomsInHouse: List<Room>,
-    totalArea: Int,
-    totalMetre: Int,
     onAddRoomClicked: () -> Unit,
     onRemoveRoomClicked: (Room) -> Unit,
     onEditRoomClicked: (Room) -> Unit,
@@ -189,7 +185,7 @@ fun HouseScreenInternal(
                                 style = MaterialTheme.typography.titleLarge
                             )
                             Text(
-                                text = "${currentHouse.totalWallArea} м²",
+                                text = "${currentHouse?.totalWallArea} м²",
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -210,7 +206,7 @@ fun HouseScreenInternal(
                                     style = MaterialTheme.typography.titleLarge
                                 )
                                 Text(
-                                    text = "$totalMetre м",
+                                    text = "${currentHouse?.totalWindowMetre} м",
                                     style = MaterialTheme.typography.headlineMedium,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -258,6 +254,7 @@ fun HouseScreenInternal(
         }
     }
 }
+
 @ExperimentalMaterial3Api
 @Composable
 fun RoomInHouseItem(
@@ -389,8 +386,6 @@ fun HouseScreenEmptyPreview() {
             navController = rememberNavController(),
             currentHouse = previewHouse.copy(name = "Пустой Дом (Превью)"),
             roomsInHouse = emptyList(),
-            totalArea = 0,
-            totalMetre = 0,
             onAddRoomClicked = {},
             onRemoveRoomClicked = {},
             onEditRoomClicked = {}
@@ -406,8 +401,6 @@ fun HouseScreenWithDataPreview() {
             navController = rememberNavController(),
             currentHouse = previewHouse,
             roomsInHouse = previewsRoom,
-            totalArea = previewsRoom.sumOf { it.wallArea }.toInt(),
-            totalMetre = previewsRoom.sumOf { it.windowMetre }.toInt(),
             onAddRoomClicked = {},
             onRemoveRoomClicked = {},
             onEditRoomClicked = {}

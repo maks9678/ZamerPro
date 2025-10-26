@@ -24,7 +24,7 @@ class PriceViewModel(
     val roomsInHouse: StateFlow<List<Room>>
 
     private val houseAndRooms = houseDao.getHouseWithRooms(idHouse)
-val quantityWindows = roomsInHouse.value
+
     init {
         currentHouse = houseAndRooms
             .combine(houseDao.getHouseByIdFlow(idHouse)) { houseWithRoom, house ->

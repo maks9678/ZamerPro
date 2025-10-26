@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -52,15 +53,9 @@ fun PriceScreen(
         factory = PriceViewModel.PriceViewModelFactory(application, houseId)
     )
     val currentHouse by viewModel.currentHouse.collectAsState()
-
-    val price = Price()
     PriceScreenInternal(
         navController,
         currentHouse,
-        price.priceArea,
-        price.priceMetre,
-        viewModel.quantityWindows,
-        price.priceCoverWindows
     )
 
 }
@@ -71,11 +66,6 @@ fun Preview() {
     PriceScreenInternal(
         rememberNavController(),
         currentHouse = previewHouse,
-        600,
-        600,
-        8,
-        300
-
         )
 }
 
@@ -84,11 +74,6 @@ fun Preview() {
 fun PriceScreenInternal(
     navController: NavController,
     currentHouse: House?,
-    priceArea: Int,
-    priceMetre: Int,
-    quantityWindows: Int,
-    priceCoverWindows: Int
-
 ) {
     Scaffold(
         topBar = {
@@ -110,24 +95,25 @@ fun PriceScreenInternal(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            val price =Price()
             item {
                 currentHouse?.let {
                     PointWorkItem(
                         "Шпаклевка квадратуры",
                         currentHouse.totalWallArea,
-                        priceArea
+                        price.priceArea
                     )
                     PointWorkItem(
                         "Шпаклевка метража",
                         currentHouse.totalWindowMetre,
-                        priceMetre
+                        price.priceMetre
                     )
-                    PointWorkItem(
-                        "Укрывка окон",
-                        quantityWindows,
-                        priceCoverWindows
-
-                    )
+//                    PointWorkItem(
+//                        "Укрывка окон",
+//                        currentHouse.quantityWindows,
+//                        price.priceCoverWindows
+//
+//                    )
                 }
             }
         }
@@ -147,15 +133,18 @@ fun PointWorkItem(
             .fillMaxWidth()
             .padding(8.dp)
     ) {
-        Column {
-            Text(text = nameWork)
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(text = nameWork,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth())
 
-            Row {
-                Text(text = amountWork.toString())
-                Text(text = priceWork.toString())
-                Text(
-                    text = { amountWork * priceWork }.toString(),
-                )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ){
+                Text(text = "$amountWork кв *")
+                Text(text =  "$priceWork р ")
+                Text(text = { amountWork * priceWork }.toString())
             }
         }
     }

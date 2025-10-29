@@ -37,10 +37,10 @@ import com.example.zamerpro.ui.theme.Text
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
 data class Price(
-    var priceArea: Int=600,
-    var priceMetre: Int=600,
+    var priceArea: Int = 600,
+    var priceMetre: Int = 600,
     var priceCoverWindows: Int = 300,
-    )
+)
 
 @ExperimentalMaterial3Api
 @Composable
@@ -59,6 +59,7 @@ fun PriceScreen(
     )
 
 }
+
 @ExperimentalMaterial3Api
 @Composable
 @Preview(showBackground = true)
@@ -66,7 +67,7 @@ fun Preview() {
     PriceScreenInternal(
         rememberNavController(),
         currentHouse = previewHouse,
-        )
+    )
 }
 
 @ExperimentalMaterial3Api
@@ -75,17 +76,7 @@ fun PriceScreenInternal(
     navController: NavController,
     currentHouse: House?,
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(currentHouse?.name ?: "Мой Дом") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -93,10 +84,13 @@ fun PriceScreenInternal(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val price =Price()
+            val price = Price()
+            var priceSum = 1
+
             item {
+                Text("Виды работ:")
                 currentHouse?.let {
                     PointWorkItem(
                         "Шпаклевка квадратуры",
@@ -116,8 +110,20 @@ fun PriceScreenInternal(
 //                    )
                 }
             }
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        "Сумма по расходникам : "
+                    )
+                    Text(text = "Сумма по работам : ")
+                    Text(text = "Итого за объект : ")
+                }
+            }
         }
-
     }
 }
 
@@ -131,20 +137,22 @@ fun PointWorkItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(16.dp, 4.dp)
     ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            Text(text = nameWork,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth())
+        Column(modifier = Modifier.padding(16.dp, 8.dp)) {
+            Text(
+                text = nameWork,
+                textAlign = TextAlign.Start,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            Row (
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ){
-                Text(text = "$amountWork кв *")
-                Text(text =  "$priceWork р ")
-                Text(text = { amountWork * priceWork }.toString())
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(text = "$amountWork  *")
+                Text(text = "$priceWork р  =")
+                Text(text = "${amountWork * priceWork} рублей")
             }
         }
     }

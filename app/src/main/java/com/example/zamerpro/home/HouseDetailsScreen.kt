@@ -1,6 +1,7 @@
 package com.example.zamerpro.home
 
 import android.app.Application
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -10,11 +11,13 @@ import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,6 +63,13 @@ fun HouseDetailsScreen(
         topBar = {
             TopAppBar(
                 title = { Text(currentHouse?.name ?: "Загрузка...") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                ),
                 // Добавляем кнопку "Назад"
                 navigationIcon = {
                     IconButton(onClick = { rootNavController.navigateUp() }) {
@@ -95,7 +105,7 @@ fun HouseDetailsScreen(
                     houseId = houseId
                 )
             }
-            composable(HouseDetailsNavItem.Price.route){
+            composable(HouseDetailsNavItem.Price.route) {
                 PriceScreen(
                     rootNavController,
                     houseId
@@ -104,12 +114,13 @@ fun HouseDetailsScreen(
         }
     }
 }
+
 @Composable
 fun HouseDetailsBottomBar(navController: NavController) {
-    // Определяем вкладки, которые будут на экране дома
     val items = listOf(
-        HouseDetailsNavItem.Rooms,      // Экран комнат для этого дома
-        HouseDetailsNavItem.Materials,  // Экран материалов для этого дома
+        HouseDetailsNavItem.Rooms,
+        HouseDetailsNavItem.Materials,
+        HouseDetailsNavItem.Price,
     )
 
     NavigationBar {
@@ -136,6 +147,7 @@ fun HouseDetailsBottomBar(navController: NavController) {
         }
     }
 }
+
 sealed class HouseDetailsNavItem(val route: String, val title: String, val icon: ImageVector) {
     // Маршрут для списка комнат конкретного дома
     // Мы добавим houseId к этому маршруту при навигации
@@ -151,7 +163,8 @@ sealed class HouseDetailsNavItem(val route: String, val title: String, val icon:
         title = "Материалы",
         icon = Icons.Default.Construction
     )
-    object Price: HouseDetailsNavItem(
+
+    object Price : HouseDetailsNavItem(
         route = PRICE_SCREEN_ROUTE,
         title = "Стоимость работ",
         icon = Icons.Default.AttachMoney

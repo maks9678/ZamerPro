@@ -144,18 +144,7 @@ fun HouseScreenInternal(
     onEditRoomClicked: (Room) -> Unit,
     modifier: Modifier = Modifier // Добавим modifier
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(currentHouse?.name ?: "Мой Дом") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-
-                    )
-            )
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
 
         LazyColumn(
             modifier = modifier

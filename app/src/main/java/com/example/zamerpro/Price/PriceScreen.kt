@@ -3,25 +3,38 @@ package com.example.zamerpro.Price
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -30,15 +43,18 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.zamerpro.Class.House
 import com.example.zamerpro.Class.Room
+import com.example.zamerpro.Dao.HomeDao
+import com.example.zamerpro.Dao.RoomDao
 import com.example.zamerpro.home.previewHouse
 import com.example.zamerpro.home.previewsRoom
 import com.example.zamerpro.ui.theme.Text
+import kotlinx.coroutines.flow.forEach
 
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
 data class Price(
-    var priceArea: Int = 600,
-    var priceMetre: Int = 600,
+    var priceArea: Int = 700,
+    var priceMetre: Int = 700,
     var priceCoverWindows: Int = 300,
 )
 
@@ -53,12 +69,21 @@ fun PriceScreen(
         factory = PriceViewModel.PriceViewModelFactory(application, houseId)
     )
     val currentHouse by viewModel.currentHouse.collectAsState()
+    val listCost by viewModel.listCost.collectAsState()
+    val sumListWork by viewModel.sumListWork.collectAsState()
+
     PriceScreenInternal(
         navController,
         currentHouse,
+        listCost,
+        viewModel::addCost,
+        viewModel::totalCost,
+        viewModel::addListSum,
+        sumListWork
     )
 
 }
+
 
 @ExperimentalMaterial3Api
 @Composable
@@ -67,6 +92,15 @@ fun Preview() {
     PriceScreenInternal(
         rememberNavController(),
         currentHouse = previewHouse,
+
+        onListCost = listOf(
+            CostItem("пельмени", 123),
+            CostItem("дрова", 241)
+        ),
+        { _, _ -> 0 },
+        { 12 },
+        {},
+        12
     )
 }
 
@@ -75,6 +109,11 @@ fun Preview() {
 fun PriceScreenInternal(
     navController: NavController,
     currentHouse: House?,
+    onListCost:List<CostItem>,
+    onAddCost: (String, Int) -> Unit,
+    onTotalCost: () -> Int,
+    onAddSum: (Int) -> Unit,
+    sumListWork:Int
 ) {
     Scaffold { paddingValues ->
         LazyColumn(
@@ -87,44 +126,112 @@ fun PriceScreenInternal(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val price = Price()
-            var priceSum = 1
-
             item {
                 Text("Виды работ:")
                 currentHouse?.let {
                     PointWorkItem(
                         "Шпаклевка квадратуры",
                         currentHouse.totalWallArea,
-                        price.priceArea
+                        price.priceArea,
+                        onAddSum
                     )
                     PointWorkItem(
                         "Шпаклевка метража",
                         currentHouse.totalWindowMetre,
-                        price.priceMetre
+                        price.priceMetre,
+                        onAddSum
                     )
-//                    PointWorkItem(
-//                        "Укрывка окон",
-//                        currentHouse.quantityWindows,
-//                        price.priceCoverWindows
-//
-//                    )
+                    PointWorkItem(
+                        "Укрывка окон",
+                        currentHouse.quantityWindows,
+                        price.priceCoverWindows,
+                        onAddSum
+                    )
+                    Text(text = "Сумма по работам : ${sumListWork}")
                 }
             }
             item {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "Сумма по расходникам : "
-                    )
-                    Text(text = "Сумма по работам : ")
-                    Text(text = "Итого за объект : ")
-                }
+                Cost(
+                    onListCost,
+                    onAddCost,
+                    onTotalCost
+                )
+
+
+                Text(text = "Итого за объект : ")
             }
         }
     }
+}
+
+@Composable
+fun Cost(
+    listCost: List<CostItem>,
+    onAddCost: (String, Int) -> Unit,
+    onTotalCost: () -> Int,
+) {
+    var nameInput by remember { mutableStateOf("") }
+    var priceInput by remember { mutableStateOf("") }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("Расходники:", Modifier.fillMaxWidth())
+        listCost.forEach { item ->
+            Text("${item.name}: ${item.prise} ₽")
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        OutlinedTextField(
+            value = nameInput,
+            onValueChange = { input ->
+                if (input.all { it.isLetter() }) {
+                    nameInput = input
+                }
+            },
+            label = { Text("Чек") },
+            modifier = Modifier.fillMaxWidth(0.5f),// стандартная высота TextField
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+        )
+
+        OutlinedTextField(
+            value = priceInput,
+            onValueChange = { input ->
+                if (input.all { it.isDigit() }) {
+                    priceInput = input
+                }
+            },
+            label = { Text("Цена") },
+            modifier = Modifier.fillMaxWidth(), // стандартная высота TextField
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
+    }
+
+    Button(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp), onClick = {
+            onAddCost(nameInput, priceInput.toInt())
+            nameInput = ""
+            priceInput = ""
+        }) {
+        Text("Добавить чек")
+
+    }
+    Text(
+        "Сумма по расходникам :${onTotalCost.invoke()} "
+    )
+
+
 }
 
 @Composable
@@ -132,10 +239,13 @@ fun PointWorkItem(
     nameWork: String,
     amountWork: Int,
     priceWork: Int,
+    onAddSum: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var priceWorkText by remember { mutableStateOf(priceWork.toString()) }
+
     Card(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp, 4.dp)
     ) {
@@ -148,12 +258,33 @@ fun PointWorkItem(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(text = "$amountWork  *")
-                Text(text = "$priceWork р  =")
-                Text(text = "${amountWork * priceWork} рублей")
+                Text(text = "$amountWork *")
+
+                OutlinedTextField(
+                    value = priceWorkText,
+                    onValueChange = { input ->
+                        if (input.all { it.isDigit() }) {
+                            priceWorkText = input
+                        }
+                    },
+                    label = { Text("Цена") },
+                    modifier = Modifier
+                        .width(70.dp)
+                        .height(60.dp), // стандартная высота TextField
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+
+                val priceWorkInt = priceWorkText.toIntOrNull() ?: 0
+                val sum = amountWork * priceWorkInt
+                Text(text = " р =")
+                Text(text = "${sum} рублей")
+                onAddSum(sum)
             }
         }
     }
 }
+

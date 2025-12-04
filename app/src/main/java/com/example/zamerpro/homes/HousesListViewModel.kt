@@ -36,7 +36,7 @@ class HousesListViewModel (application: Application) : AndroidViewModel(applicat
     fun createNewHouse(houseName: String, onSuccess: (String) -> Unit) {
         viewModelScope.launch {
             // Предполагается, что конструктор House устанавливает ID и lastModified
-            val newHouse = House(name = houseName)
+            val newHouse = House(name = houseName,)
             houseDao.insertHouse(newHouse) // insertHouse теперь suspend и помечен @Insert
             onSuccess(newHouse.id)
         }

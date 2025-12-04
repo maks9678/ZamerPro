@@ -12,10 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -50,13 +51,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.BiasAbsoluteAlignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import kotlinx.coroutines.launch
-import org.intellij.lang.annotations.JdkConstants
 
 const val HOUSES_LIST_SCREEN_ROUTE = "housesListScreen"
 
@@ -74,12 +73,16 @@ fun HousesListScreenWithDataPreview() {
             House(
                 id = "1",
                 name = "Дом у озера (Превью)",
-                lastModified = System.currentTimeMillis()
             ),
             House(
                 id = "2",
                 name = "Квартира в центре (Превью)",
-                lastModified = System.currentTimeMillis() - 100000
+                lastModified = System.currentTimeMillis() - 100000,
+            ),
+            House(
+                id = "2",
+                name = "Квартира в центре (Превью)",
+                lastModified = System.currentTimeMillis() - 100000,
             )
         )
         HousesListScreenInternal(
@@ -91,7 +94,8 @@ fun HousesListScreenWithDataPreview() {
             onShowDialogChange = {},
             onConfirmNewHouse = {},
             onDeleteHouse = {},
-            onHouseClick = {}
+            onHouseClick = {},
+            onNewHouseCreate = {}
         )
     }
 }
@@ -109,7 +113,8 @@ fun HousesListScreenEmptyPreview() {
             onShowDialogChange = {},
             onConfirmNewHouse = {},
             onDeleteHouse = {},
-            onHouseClick = {}
+            onHouseClick = {},
+            onNewHouseCreate = {}
         )
     }
 }
@@ -127,7 +132,8 @@ fun HousesListScreenWithDialogPreview() {
             onShowDialogChange = {},
             onConfirmNewHouse = {},
             onDeleteHouse = {},
-            onHouseClick = {}
+            onHouseClick = {},
+            onNewHouseCreate = {},
         )
     }
 }
@@ -162,7 +168,8 @@ fun HousesListScreen(
         onDeleteHouse = { house -> viewModel.deleteHouse(house) },
         onHouseClick = { house ->
             navController.navigate("$HOUSE_SCREEN_ROUTE/${house.id}")
-        }
+        },
+        onNewHouseCreate = { viewModel.onShowDialogChange(true) }
     )
 }
 
@@ -178,6 +185,7 @@ fun HousesListScreenInternal(
     onConfirmNewHouse: () -> Unit,
     onDeleteHouse: (House) -> Unit,
     onHouseClick: (House) -> Unit,
+    onNewHouseCreate:()->Unit,
 ) {
     Scaffold(
         modifier,
@@ -193,6 +201,7 @@ fun HousesListScreenInternal(
             )
         },
     ) { paddingValues ->
+        Box(modifier.fillMaxSize()){
         Column(
             modifier = modifier
                 .padding(paddingValues)
@@ -210,9 +219,9 @@ fun HousesListScreenInternal(
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(8.dp), // Добавляем отступ снизу, чтобы FAB не перекрывал последний элемент
-                    verticalArrangement = Arrangement.Top,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(16.dp), // Добавляем отступ снизу, чтобы FAB не перекрывал последний элемент
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                 )
                 {
                     items(houses, key = { it.id }) { house ->
@@ -225,7 +234,12 @@ fun HousesListScreenInternal(
                 }
             }
         }
-
+            Button(shape = RoundedCornerShape(40.dp),
+                onClick = { onNewHouseCreate() },
+                modifier = Modifier.size(100.dp).align(Alignment.BottomEnd).padding(16.dp)
+            ) {
+                Text("+")
+            }
         // Диалог создания остается здесь, он будет показан поверх всего
         if (showDialog) {
             AlertDialog(
@@ -248,7 +262,7 @@ fun HousesListScreenInternal(
             )
         }
     }
-}
+}}
 
 @ExperimentalMaterial3Api
 @Composable

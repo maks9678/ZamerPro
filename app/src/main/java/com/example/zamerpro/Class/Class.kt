@@ -90,6 +90,7 @@ data class House(
     val lastModified: Long = System.currentTimeMillis(),
     val totalWallArea: Int = 0,
     val totalWindowMetre: Int = 0,
+    val quantityWindows: Int = 0,
 )
 data class HouseWithRooms(
     @Embedded

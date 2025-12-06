@@ -90,7 +90,7 @@ data class House(
     val lastModified: Long = System.currentTimeMillis(),
     val totalWallArea: Int = 0,
     val totalWindowMetre: Int = 0,
-    val quantityWindows: Int = 0,
+    val totalQuantityWindows: Int = 0,
 )
 data class HouseWithRooms(
     @Embedded
@@ -116,6 +116,7 @@ data class Room(
     var windowMetre: Double,
     val wallArea: Double,// Площадь СТЕН (для обоев): floorPerimeter * height
     val floorArea: Double,// Площадь ПОЛА: width * length
+    val countingWindows :Int,
 ): Parcelable
 data class RoomWithObjects(
     @Embedded

@@ -1,6 +1,7 @@
 package com.example.zamerpro.homes
 
 import android.app.Application
+import androidx.compose.animation.core.keyframesWithSpline
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -52,7 +55,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import kotlinx.coroutines.launch
@@ -237,9 +243,13 @@ fun HousesListScreenInternal(
             Button(shape = RoundedCornerShape(40.dp),
                 onClick = { onNewHouseCreate() },
                 modifier = Modifier.size(100.dp).align(Alignment.BottomEnd).padding(16.dp)
-            ) {
-                Text("+")
-            }
+            ) {Box( modifier = Modifier.fillMaxSize()){
+                Text("+",
+                    modifier = Modifier.align(Alignment.Center),
+                    fontSize = 30.sp,
+
+                    )
+            }}
         // Диалог создания остается здесь, он будет показан поверх всего
         if (showDialog) {
             AlertDialog(
@@ -250,7 +260,8 @@ fun HousesListScreenInternal(
                         value = newHouseName,
                         onValueChange = onNewHouseNameChange,
                         label = { Text("Название объекта") },
-                        singleLine = true
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
                     )
                 },
                 confirmButton = {

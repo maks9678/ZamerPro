@@ -143,7 +143,7 @@ fun PriceScreenInternal(
                     )
                     PointWorkItem(
                         "Укрывка окон",
-                        currentHouse.quantityWindows,
+                        currentHouse.totalQuantityWindows,
                         price.priceCoverWindows,
                         onAddSum
                     )

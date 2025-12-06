@@ -237,7 +237,7 @@ class RoomViewModel(
         }
         val floorArea = width * length
         val wallArea = (width + length) * 2 * length
-
+        val countingWindows =_windows.value.filter{it.height.toInt()!=0 && it.width.toInt()!=0}.size
 
         // 3. Создаем объект Room для сохранения
         val roomToSave = Room(
@@ -249,7 +249,8 @@ class RoomViewModel(
             height = height,
             floorArea = floorArea,
             windowMetre = windowMetre,
-            wallArea = wallArea
+            wallArea = wallArea,
+            countingWindows = countingWindows
         )
 
         // 4. Собираем и конвертируем все проемы (двери, окна и т.д.) в список Opening
@@ -300,15 +301,15 @@ class RoomViewModel(
             val rooms = roomDao.getRoomsForHouseSuspend(houseId)
             val totalWallArea = rooms.sumOf { it.wallArea }.toInt()
             val totalWindowMetre = rooms.sumOf { it.windowMetre }.toInt()
-
+            val totalQuantityWindows = rooms.sumOf { it.countingWindows }
             val houseToUpdate = homeDao.getHouseByIdSuspend(houseId)
             houseToUpdate?.let {
                 homeDao.updateHouse(
                     it.copy(
                         totalWallArea = totalWallArea,
-                        totalWindowMetre = totalWindowMetre
-                    )
-                )
+                        totalWindowMetre = totalWindowMetre,
+                        totalQuantityWindows = totalQuantityWindows
+                    ))
             }
             updateHouseTotals()
         }
@@ -319,13 +320,14 @@ class RoomViewModel(
         val rooms = roomDao.getRoomsForHouseSuspend(houseId) // Получаем свежий список комнат
         val totalWallArea = rooms.sumOf { it.wallArea }.toInt()
         val totalWindowMetre = rooms.sumOf { it.windowMetre }.toInt()
-
+        val totalQuantityWindows = rooms.sumOf{it.countingWindows}
         val houseToUpdate = homeDao.getHouseByIdSuspend(houseId)
         houseToUpdate?.let {
             homeDao.updateHouse(
                 it.copy(
                     totalWallArea = totalWallArea,
-                    totalWindowMetre = totalWindowMetre
+                    totalWindowMetre = totalWindowMetre,
+                    totalQuantityWindows = totalQuantityWindows,
                 )
             )
         }

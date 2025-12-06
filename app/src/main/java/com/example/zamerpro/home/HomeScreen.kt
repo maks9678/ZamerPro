@@ -63,7 +63,8 @@ val previewsRoom = listOf(
         floorArea = 20.0,
         wallArea = 45.0,
         windowMetre = 0.0,
-        houseId = "preview_house"
+        houseId = "preview_house",
+        countingWindows = 1,
     )
 )
 val previewHouse = House(

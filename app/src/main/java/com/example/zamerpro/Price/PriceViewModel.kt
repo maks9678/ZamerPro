@@ -17,11 +17,26 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 data class CostItem(
     val name: String,
     val prise: Int,
+)
+
+enum class WorkType {
+    AREA, // Квадратура
+    METRE  // Метраж
+}
+
+data class CustomWork(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val name: String,
+    val type: WorkType,
+    val amount: Int, // Количество (квадратура или метраж из объекта)
+    val pricePerUnit: Int, // Цена за единицу
+    val houseId: String
 )
 
 class PriceViewModel(
@@ -34,12 +49,24 @@ class PriceViewModel(
     val roomsInHouse: StateFlow<List<Room>>
 
 
-    var _listSumWork = MutableStateFlow<List<Int>>(emptyList())
+    private val _listSumWork = MutableStateFlow<List<Int>>(emptyList())
     val listSumWork: StateFlow<List<Int>> = _listSumWork
-    fun addListSum(sum: Int) = _listSumWork.value + sum
-
-    var _sumListWork= MutableStateFlow<Int>(listSumWork.value.sumOf { it })
-    val sumListWork: StateFlow<Int> = _sumListWork
+    
+    val sumListWork: StateFlow<Int> = _listSumWork
+        .map { it.sumOf { sum -> sum } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
+        )
+    
+    fun addListSum(sum: Int) {
+        _listSumWork.value = _listSumWork.value + sum
+    }
+    
+    fun clearListSum() {
+        _listSumWork.value = emptyList()
+    }
     private val _listCost = MutableStateFlow<List<CostItem>>(emptyList())
     val listCost: StateFlow<List<CostItem>> = _listCost
 
@@ -49,6 +76,35 @@ class PriceViewModel(
     }
 
     fun totalCost(): Int = listCost.value.sumOf { it.prise }
+    
+    // Кастомные работы
+    private val _customWorks = MutableStateFlow<List<CustomWork>>(emptyList())
+    val customWorks: StateFlow<List<CustomWork>> = _customWorks
+    
+    fun addCustomWork(name: String, type: WorkType, pricePerUnit: Int) {
+        val house = currentHouse.value ?: return
+        val amount = when (type) {
+            WorkType.AREA -> house.totalWallArea
+            WorkType.METRE -> house.totalWindowMetre
+        }
+        val work = CustomWork(
+            name = name,
+            type = type,
+            amount = amount,
+            pricePerUnit = pricePerUnit,
+            houseId = idHouse
+        )
+        _customWorks.value = _customWorks.value + work
+    }
+    
+    fun removeCustomWork(work: CustomWork) {
+        _customWorks.value = _customWorks.value.filterNot { it.id == work.id }
+    }
+    
+    fun getCustomWorksSum(): Int {
+        return customWorks.value.sumOf { it.amount * it.pricePerUnit }
+    }
+    
     private val houseAndRooms = houseDao.getHouseWithRooms(idHouse)
 
     init {

@@ -2,23 +2,37 @@ package com.example.zamerpro.materials
 
 import android.app.Application
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,10 +42,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.zamerpro.Class.House
 import com.example.zamerpro.Dao.AppDatabase
 import com.example.zamerpro.Class.Material
+import kotlin.compareTo
 
 const val MATERIAL_SCREEN_ROUTE = "materialScreen"
+
 @Composable
 fun MaterialsScreen(
     modifier: Modifier = Modifier,
@@ -43,13 +60,19 @@ fun MaterialsScreen(
         viewModel(factory = MaterialsViewModelFactory(houseId, application))
 
     val houseState by materialsViewModel.currentHouse.collectAsState()
-    val calculatedMaterials by materialsViewModel.calculatedMaterials.collectAsState()
-    val customList by materialsViewModel.customMaterials.collectAsState()
-    MaterialsScreenIternal(
-        houseName = houseState?.name ?: "",
-        calculatedMaterials = calculatedMaterials,
-        customMaterials = customList
-    )
+    val _houseState = houseState
+    val materialsList by materialsViewModel.houseMaterials.collectAsState()
+    if (_houseState != null) {
+        MaterialsScreenIternal(
+            _houseState.name,
+            _houseState,
+            materialsList,
+            { materialsViewModel::addNewMaterial },
+            { materialsViewModel::editMaterial },
+            { materialsViewModel::removeMaterial },
+            materialsViewModel::calculation,
+            )
+    }
 }
 
 @Preview(showBackground = true)
@@ -57,12 +80,28 @@ fun MaterialsScreen(
 fun PreviewMaterialsScreen() {
     MaterialsScreenIternal(
         "Дом",
+        House(name = "fdg"),
         listOf
             (
-            CalculatedMaterial("fsdg", "fsdg"),
-            CalculatedMaterial("fsddfg", "fsdfsdg")
+            Material(2, "fsdg", MaterialsViewModel.MaterialType.AREA, 12, ""),
+            Material(3, "fsdfdg", MaterialsViewModel.MaterialType.AREA, 112, "")
         ),
-        listOf()
+        {}, {}, {},{0}
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewMaterialsItem() {
+    MaterialItem(
+        Material(
+            name = "serpyanca",
+            intake = 1,
+            unit = MaterialsViewModel.MaterialType.AREA,
+            houseId = "3"
+        ),
+    Modifier.fillMaxSize(),
+    {0}
     )
 }
 
@@ -70,9 +109,19 @@ fun PreviewMaterialsScreen() {
 @Composable
 fun MaterialsScreenIternal(
     houseName: String,
-    calculatedMaterials: List<CalculatedMaterial>,
-    customMaterials: List<Material>
-) {
+    house: House,
+    calculatedMaterials: List<Material>,
+    onAddMaterialClick: () -> Unit,
+    onEditMaterialClick: (Material) -> Unit,
+    onRemoveFormulaMaterial: (String) -> Unit,
+    calculated: (Material) -> Int,
+
+    ) {
+    var showAddDialog by remember { mutableStateOf(false) }
+    var materialName by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf(MaterialsViewModel.MaterialType.AREA) }
+    var intake by remember { mutableStateOf("") }
+
     Scaffold { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -86,58 +135,123 @@ fun MaterialsScreenIternal(
             if (calculatedMaterials.isNotEmpty()) {
                 items(calculatedMaterials, key = { it.name }) { material ->
                     // Новый Composable для этого типа данных
-                    CalculatedMaterialItem(material)
-                }
-            }
-
-            // --- Секция добавленных вручную материалов ---
-            if (customMaterials.isNotEmpty()) {
-                item {
-                    Text(
-                        "Добавленные вручную",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(top = 16.dp) // Отступ между секциями
+                    MaterialItem(
+                        material, modifier = Modifier.clickable { onEditMaterialClick(material) },
+                        totalMaterial = { calculated(material) }
                     )
                 }
-                items(customMaterials, key = { it.id }) { material ->
-                    // Ваш существующий MaterialItem
-                    MaterialItem(material)
-                }
             }
+        }
+        Button(onClick = { showAddDialog = true }) {
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = "Добавить материал",
+                modifier = Modifier.size(18.dp)
+            )
+            Text("Добавить")
+        }
+        if (showAddDialog) {
+            AlertDialog(
+                modifier = Modifier.fillMaxSize(),
+                onDismissRequest = { showAddDialog = false },
+                title = { Text("Добавить материал") },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = materialName,
+                            onValueChange = { materialName = it },
+                            label = { Text("Название материала") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = intake,
+                            onValueChange =  { input ->
+                                intake = input.filter { it.isDigit() }},
+                            label = { Text("расход на 1 ") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            SegmentedButton(
+                                selected = selectedType == MaterialsViewModel.MaterialType.AREA,
+                                onClick = {
+                                    selectedType = MaterialsViewModel.MaterialType.AREA
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("на квадратуру")
+                            }
+                            SegmentedButton(
+                                selected = selectedType == MaterialsViewModel.MaterialType.METRE,
+                                onClick = {
+                                    selectedType = MaterialsViewModel.MaterialType.METRE
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("на метраж")
+                            }
+                        }
+
+                        Text(
+                            text = "Количество: ${
+                                if (selectedType == MaterialsViewModel.MaterialType.AREA) house.totalWallArea
+                                else house.totalWindowMetre
+                            } ${if (selectedType == MaterialsViewModel.MaterialType.AREA) "м²" else "м"}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (materialName.isNotBlank() && intake.toInt() > 0) {
+                                onAddMaterialClick()
+                                materialName = ""
+                                intake = ""
+                                showAddDialog = false
+                            }
+                        }
+                    ) {
+                        Text("Добавить")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { showAddDialog = false }) {
+                        Text("Отмена")
+                    }
+                }
+            )
         }
     }
 }
 
-@Composable
-fun CalculatedMaterialItem(material: CalculatedMaterial) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = material.name, style = MaterialTheme.typography.bodyLarge)
-        Text(text = material.value, style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewMaterialsItem() {
-    MaterialItem(Material(name = "serpyanca", quantity = 1, unit = "m", houseId = "3"))
-}
 
 @Composable
-fun MaterialItem(material: Material) {
-    Row(
-        modifier = Modifier
+fun MaterialItem(
+    material: Material,
+    modifier: Modifier,
+    totalMaterial: (Material) -> Int
+) {
+    Column(
+        modifier = modifier
             .fillMaxWidth()
             .padding(8.dp)
     ) {
-        Text(text = material.name, style = MaterialTheme.typography.titleMedium)
+        Text(text = material.name, style = MaterialTheme.typography.bodyLarge)
+        Text(text = material.intake.toString(), style = MaterialTheme.typography.bodyLarge)
         Text(
-            text = material.quantity.toString(),
-            style = MaterialTheme.typography.titleMedium
+            text = totalMaterial(material).toString(),
+            style = MaterialTheme.typography.bodyLarge
         )
-        Text(text = material.unit, style = MaterialTheme.typography.titleMedium)
     }
 }
 

@@ -173,7 +173,7 @@ fun HouseScreenInternal(
                                 style = MaterialTheme.typography.titleLarge
                             )
                             Text(
-                                text = "${currentHouse?.totalWallArea} м²",
+                                text = "${if (roomsInHouse.isEmpty()) 0 else (currentHouse?.totalWallArea ?: 0)} м²",
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -184,21 +184,15 @@ fun HouseScreenInternal(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Метраж откосов:",
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                                Text(
-                                    text = "${currentHouse?.totalWindowMetre} м",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
+                            Text(
+                                text = "Метраж откосов:",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Text(
+                                text = "${if (roomsInHouse.isEmpty()) 0 else (currentHouse?.totalWindowMetre ?: 0)} м",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }

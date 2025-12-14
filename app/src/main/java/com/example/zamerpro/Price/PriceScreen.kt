@@ -42,13 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.zamerpro.Class.House
-import com.example.zamerpro.Class.Room
-import com.example.zamerpro.Dao.HomeDao
-import com.example.zamerpro.Dao.RoomDao
 import com.example.zamerpro.home.previewHouse
-import com.example.zamerpro.home.previewsRoom
-import com.example.zamerpro.ui.theme.Text
-import kotlinx.coroutines.flow.forEach
 
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
@@ -71,6 +65,12 @@ fun PriceScreen(
     val currentHouse by viewModel.currentHouse.collectAsState()
     val listCost by viewModel.listCost.collectAsState()
     val sumListWork by viewModel.sumListWork.collectAsState()
+    val customWorks by viewModel.customWorks.collectAsState()
+
+    // Очищаем список сумм при изменении дома
+    androidx.compose.runtime.LaunchedEffect(currentHouse?.id) {
+        viewModel.clearListSum()
+    }
 
     PriceScreenInternal(
         navController,
@@ -79,7 +79,12 @@ fun PriceScreen(
         viewModel::addCost,
         viewModel::totalCost,
         viewModel::addListSum,
-        sumListWork
+        sumListWork,
+        viewModel.totalCost(),
+        customWorks,
+        viewModel::addCustomWork,
+        viewModel::removeCustomWork,
+        viewModel.getCustomWorksSum()
     )
 
 }
@@ -92,15 +97,19 @@ fun Preview() {
     PriceScreenInternal(
         rememberNavController(),
         currentHouse = previewHouse,
-
         onListCost = listOf(
             CostItem("пельмени", 123),
             CostItem("дрова", 241)
         ),
-        { _, _ -> 0 },
-        { 12 },
-        {},
-        12
+        { _, _ -> },
+        { 364 },
+        { },
+        1200,
+        364,
+        emptyList(),
+        { _, _, _ -> },
+        { },
+        0
     )
 }
 
@@ -113,7 +122,12 @@ fun PriceScreenInternal(
     onAddCost: (String, Int) -> Unit,
     onTotalCost: () -> Int,
     onAddSum: (Int) -> Unit,
-    sumListWork:Int
+    sumListWork: Int,
+    totalCostValue: Int,
+    customWorks: List<CustomWork>,
+    onAddCustomWork: (String, WorkType, Int) -> Unit,
+    onRemoveCustomWork: (CustomWork) -> Unit,
+    customWorksSum: Int
 ) {
     Scaffold { paddingValues ->
         LazyColumn(
@@ -127,28 +141,46 @@ fun PriceScreenInternal(
         ) {
             val price = Price()
             item {
-                Text("Виды работ:")
+                Text("Виды работ:", style = MaterialTheme.typography.titleMedium)
                 currentHouse?.let {
                     PointWorkItem(
-                        "Шпаклевка квадратуры",
-                        currentHouse.totalWallArea,
-                        price.priceArea,
-                        onAddSum
+                        key = "wall_area",
+                        nameWork = "Шпаклевка квадратуры",
+                        amountWork = currentHouse.totalWallArea,
+                        priceWork = price.priceArea,
+                        onAddSum = onAddSum
                     )
                     PointWorkItem(
-                        "Шпаклевка метража",
-                        currentHouse.totalWindowMetre,
-                        price.priceMetre,
-                        onAddSum
+                        key = "window_metre",
+                        nameWork = "Шпаклевка метража",
+                        amountWork = currentHouse.totalWindowMetre,
+                        priceWork = price.priceMetre,
+                        onAddSum = onAddSum
                     )
                     PointWorkItem(
-                        "Укрывка окон",
-                        currentHouse.totalQuantityWindows,
-                        price.priceCoverWindows,
-                        onAddSum
+                        key = "window_cover",
+                        nameWork = "Укрывка окон",
+                        amountWork = currentHouse.totalQuantityWindows,
+                        priceWork = price.priceCoverWindows,
+                        onAddSum = onAddSum
                     )
-                    Text(text = "Сумма по работам : ${sumListWork}")
+                    Text(
+                        text = "Сумма по работам : ${sumListWork + customWorksSum} ₽",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                } ?: run {
+                    Text("Загрузка данных...")
                 }
+            }
+            // Секция кастомных работ
+            item {
+//                CustomWorksSection(
+//                    customWorks = customWorks,
+//                    currentHouse = currentHouse,
+//                    onAddCustomWork = onAddCustomWork,
+//                    onRemoveCustomWork = onRemoveCustomWork
+//                )
             }
             item {
                 Cost(
@@ -157,8 +189,11 @@ fun PriceScreenInternal(
                     onTotalCost
                 )
 
-
-                Text(text = "Итого за объект : ")
+                Text(
+                    text = "Итого за объект : ${sumListWork + customWorksSum + totalCostValue} ₽",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
             }
         }
     }
@@ -236,13 +271,31 @@ fun Cost(
 
 @Composable
 fun PointWorkItem(
+    key: String,
     nameWork: String,
     amountWork: Int,
     priceWork: Int,
     onAddSum: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var priceWorkText by remember { mutableStateOf(priceWork.toString()) }
+    var priceWorkText by remember(key) { mutableStateOf(priceWork.toString()) }
+    var lastReportedSum by remember(key) { mutableStateOf<Int?>(null) }
+
+    val priceWorkInt = priceWorkText.toIntOrNull() ?: 0
+    val sum = amountWork * priceWorkInt
+
+    // Обновляем сумму при изменении
+    androidx.compose.runtime.LaunchedEffect(sum, amountWork) {
+        val difference = if (lastReportedSum == null) {
+            sum // Первая инициализация - добавляем полную сумму
+        } else {
+            sum - lastReportedSum!! // Добавляем разницу
+        }
+        if (difference != 0) {
+            onAddSum(difference)
+            lastReportedSum = sum
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -266,25 +319,21 @@ fun PointWorkItem(
                 OutlinedTextField(
                     value = priceWorkText,
                     onValueChange = { input ->
-                        if (input.all { it.isDigit() }) {
+                        if (input.all { it.isDigit() || input.isEmpty() }) {
                             priceWorkText = input
                         }
                     },
                     label = { Text("Цена") },
                     modifier = Modifier
                         .width(70.dp)
-                        .height(60.dp), // стандартная высота TextField
+                        .height(60.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
 
-                val priceWorkInt = priceWorkText.toIntOrNull() ?: 0
-                val sum = amountWork * priceWorkInt
                 Text(text = " р =")
                 Text(text = "${sum} рублей")
-                onAddSum(sum)
             }
         }
     }
 }
-

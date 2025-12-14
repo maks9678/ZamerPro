@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -42,6 +44,7 @@ android {
 }
 
 dependencies {
+    implementation("net.objecthunter:exp4j:0.4.8")
     implementation("androidx.compose.material:material-icons-extended-android:1.6.7")
     implementation(libs.core.ktx)
     implementation(libs.material3)

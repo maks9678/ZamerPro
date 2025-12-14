@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Relation
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import com.example.zamerpro.materials.MaterialsViewModel
 import kotlinx.android.parcel.Parcelize
 import java.util.UUID
 
@@ -20,40 +21,29 @@ enum class Measurement(val displayName: String, val shortForm: String) {
     LITRE("литр", "л");
     // Можете добавить сюда другие единицы, если нужно
 }
+
 @Entity(
-tableName = "materials",
-foreignKeys = [
-ForeignKey(
-entity = House::class,
-parentColumns = ["id"],
-childColumns = ["houseId"],
-onDelete = ForeignKey.CASCADE // Если удалить дом, все его материалы тоже удалятся
-)
-]
+    tableName = "materials",
+    foreignKeys = [
+        ForeignKey(
+            entity = House::class,
+            parentColumns = ["id"],
+            childColumns = ["houseId"],
+            onDelete = ForeignKey.CASCADE // Если удалить дом, все его материалы тоже удалятся
+        )
+    ]
 )
 data class Material(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,         // Название материала, например "Обои"
-    val quantity: Int,     // Количество, например 10.5
-    val unit: String,         // Единица измерения, например "рулон" или "кв.м."
-    val houseId: String          // Внешний ключ для связи с домом
+    val unit: MaterialsViewModel.MaterialType,
+    val intake:Int,
+    val houseId: String,// Внешний ключ для связи с домом
 )
-class HomeSupplies(
-    val id: String = UUID.randomUUID().toString(),
-    val houseId: String,
-    val listOfMaterials: List<Material>,
-    val plasticCorners: Int,
-    val windowJoining:Int,
-    val serpyanka: Int,
-    val fugen:Int,
-    val primer:Int,
-    val putty:Int,
-    val grindingWheels:Int,
-    val extraMaterial:Int,
-)
+
 enum class OpeningType {
-    DOOR, WINDOW, OTHER_METRE,OTHER_AREA
+    DOOR, WINDOW, OTHER_METRE, OTHER_AREA
 }
 
 @Entity(
@@ -75,6 +65,7 @@ data class Opening(
     val width: Double,
     val height: Double
 )
+
 //НАДО ПЕРЕМЕСТИТЬ В КОМНАТУ
 @Parcelize
 data class ItemDimension(
@@ -92,6 +83,7 @@ data class House(
     val totalWindowMetre: Int = 0,
     val totalQuantityWindows: Int = 0,
 )
+
 data class HouseWithRooms(
     @Embedded
     val house: House,
@@ -102,6 +94,7 @@ data class HouseWithRooms(
     )
     val rooms: List<Room>
 )
+
 @Parcelize
 @Entity(tableName = "rooms")
 @TypeConverters(Converters::class)
@@ -116,8 +109,9 @@ data class Room(
     var windowMetre: Double,
     val wallArea: Double,// Площадь СТЕН (для обоев): floorPerimeter * height
     val floorArea: Double,// Площадь ПОЛА: width * length
-    val countingWindows :Int,
-): Parcelable
+    val countingWindows: Int,
+) : Parcelable
+
 data class RoomWithObjects(
     @Embedded
     val room: Room,
@@ -128,6 +122,7 @@ data class RoomWithObjects(
     )
     val openings: List<Opening> // Список всех дверей и окон
 )
+
 class Converters {
     @TypeConverter
     fun fromString(value: String?): List<Double> {

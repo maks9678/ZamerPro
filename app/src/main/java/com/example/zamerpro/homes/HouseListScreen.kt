@@ -156,6 +156,13 @@ fun HousesListScreen(
     val showDialog by viewModel.showDialog.collectAsState()
     var newHouseName by remember { mutableStateOf("") }
 
+    // Закрываем диалог при возврате на этот экран
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (showDialog) {
+            viewModel.onShowDialogChange(false)
+        }
+    }
+
     HousesListScreenInternal(
         houses = houses,
         modifier = modifier,
@@ -240,16 +247,20 @@ fun HousesListScreenInternal(
                 }
             }
         }
-            Button(shape = RoundedCornerShape(40.dp),
+            Button(
+                shape = RoundedCornerShape(28.dp),
                 onClick = { onNewHouseCreate() },
-                modifier = Modifier.size(100.dp).align(Alignment.BottomEnd).padding(16.dp)
-            ) {Box( modifier = Modifier.fillMaxSize()){
-                Text("+",
-                    modifier = Modifier.align(Alignment.Center),
-                    fontSize = 30.sp,
-
-                    )
-            }}
+                modifier = Modifier
+                    .size(100.dp)
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Text(
+                    "+",
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                    fontSize = 24.sp
+                )
+            }
         // Диалог создания остается здесь, он будет показан поверх всего
         if (showDialog) {
             AlertDialog(

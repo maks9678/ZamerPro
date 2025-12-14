@@ -418,23 +418,23 @@ fun DimensionListSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    DimensionTextField( // DimensionTextField теперь принимает isError
+                    DimensionTextField(
                         label = "Ширина (м)",
                         value = item.width,
                         onValueChange = { newWidth ->
                             onItemWidthChange(index, newWidth)
                         },
                         modifier = Modifier.weight(1f),
-                        isError = item.width == null // Пример валидации
+                        isError = item.width.isNotBlank() && item.width.toDoubleOrNull() == null
                     )
-                    DimensionTextField( // DimensionTextField теперь принимает isError
+                    DimensionTextField(
                         label = "Высота (м)",
                         value = item.height,
                         onValueChange = { newHeight ->
                             onItemHeightChange(index, newHeight)
                         },
                         modifier = Modifier.weight(1f),
-                        isError = item.height == null // Пример валидации
+                        isError = item.height.isNotBlank() && item.height.toDoubleOrNull() == null
                     )
                     IconButton(onClick = { onRemoveItem(item) }) { // Передаем объект для удаления
                         Icon(Icons.Filled.Delete, contentDescription = "Удалить")

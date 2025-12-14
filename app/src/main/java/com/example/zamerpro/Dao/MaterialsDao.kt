@@ -42,11 +42,11 @@ interface MaterialsDao {
      * Room находит нужную запись по PrimaryKey (полю 'id') объекта material.
      */
     @Update
-    suspend fun update(material: Material)
+    suspend fun update(material:Material)
 
     /**
      * Удаляет материал из базы данных.
      */
     @Delete
-    suspend fun delete(material: Material)
+    suspend fun delete(material:Material)
 }

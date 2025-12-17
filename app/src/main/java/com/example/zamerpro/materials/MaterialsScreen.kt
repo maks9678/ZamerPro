@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,10 +17,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -35,6 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.createFromAutofillValue
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -71,7 +77,7 @@ fun MaterialsScreen(
             { materialsViewModel::editMaterial },
             { materialsViewModel::removeMaterial },
             materialsViewModel::calculation,
-            )
+        )
     }
 }
 
@@ -86,7 +92,7 @@ fun PreviewMaterialsScreen() {
             Material(2, "fsdg", MaterialsViewModel.MaterialType.AREA, 12, ""),
             Material(3, "fsdfdg", MaterialsViewModel.MaterialType.AREA, 112, "")
         ),
-        {}, {}, {},{0}
+        {}, {}, {}, { 0 }
     )
 }
 
@@ -100,8 +106,8 @@ fun PreviewMaterialsItem() {
             unit = MaterialsViewModel.MaterialType.AREA,
             houseId = "3"
         ),
-    Modifier.fillMaxSize(),
-    {0}
+        Modifier.fillMaxSize(),
+        { 0 }, {}
     )
 }
 
@@ -122,37 +128,66 @@ fun MaterialsScreenIternal(
     var selectedType by remember { mutableStateOf(MaterialsViewModel.MaterialType.AREA) }
     var intake by remember { mutableStateOf("") }
 
-    Scaffold { paddingValues ->
-        LazyColumn(
+    Scaffold(
+        bottomBar = {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp),
+                    onClick = { showAddDialog = true }) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "Добавить материал",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text("Добавить")
+                }
+            }
+        })
+    { paddingValues ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(color = MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+
         ) {
-            if (calculatedMaterials.isNotEmpty()) {
-                items(calculatedMaterials, key = { it.name }) { material ->
-                    // Новый Composable для этого типа данных
-                    MaterialItem(
-                        material, modifier = Modifier.clickable { onEditMaterialClick(material) },
-                        totalMaterial = { calculated(material) }
-                    )
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.background),
+                contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                stickyHeader{
+                    Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Название")
+                    Text("Расход")
+                    Text("Количество")
+                    Text("")
+                }}
+                if (calculatedMaterials.isNotEmpty()) {
+                    items(calculatedMaterials, key = { it.name }) { material ->
+                        // Новый Composable для этого типа данных
+                        MaterialItem(
+                            material,
+                            modifier = Modifier.clickable { onEditMaterialClick(material) },
+                            totalMaterial = { calculated(material) },
+                            onEditMaterialClick
+                        )
+                    }
                 }
             }
         }
-        Button(onClick = { showAddDialog = true }) {
-            Icon(
-                Icons.Filled.Add,
-                contentDescription = "Добавить материал",
-                modifier = Modifier.size(18.dp)
-            )
-            Text("Добавить")
-        }
         if (showAddDialog) {
             AlertDialog(
-                modifier = Modifier.fillMaxSize(),
                 onDismissRequest = { showAddDialog = false },
                 title = { Text("Добавить материал") },
                 text = {
@@ -169,22 +204,26 @@ fun MaterialsScreenIternal(
                         )
                         OutlinedTextField(
                             value = intake,
-                            onValueChange =  { input ->
-                                intake = input.filter { it.isDigit() }},
-                            label = { Text("расход на 1 ") },
+                            onValueChange = { input ->
+                                intake = input.filter { it.isDigit() }
+                            },
+                            label = { Text("расход на 1 кв/м ") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
 
                         SingleChoiceSegmentedButtonRow(
                             modifier = Modifier.fillMaxWidth()
+
                         ) {
                             SegmentedButton(
                                 selected = selectedType == MaterialsViewModel.MaterialType.AREA,
                                 onClick = {
                                     selectedType = MaterialsViewModel.MaterialType.AREA
                                 },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text("на квадратуру")
@@ -239,12 +278,14 @@ fun MaterialsScreenIternal(
 fun MaterialItem(
     material: Material,
     modifier: Modifier,
-    totalMaterial: (Material) -> Int
+    totalMaterial: (Material) -> Int,
+    onEditMaterialClick: (Material) -> Unit,
 ) {
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(text = material.name, style = MaterialTheme.typography.bodyLarge)
         Text(text = material.intake.toString(), style = MaterialTheme.typography.bodyLarge)
@@ -252,6 +293,20 @@ fun MaterialItem(
             text = totalMaterial(material).toString(),
             style = MaterialTheme.typography.bodyLarge
         )
+        IconButton(
+            onClick = { onEditMaterialClick(material) },
+            colors = IconButtonDefaults.iconButtonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.error
+            )
+        ) {
+            Icon(
+                Icons.Filled.Delete,
+                contentDescription = "Удалить объект",
+                tint = MaterialTheme.colorScheme.error
+
+            )
+        }
     }
 }
 

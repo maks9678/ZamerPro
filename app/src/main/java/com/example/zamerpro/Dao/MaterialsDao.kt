@@ -18,15 +18,15 @@ interface MaterialsDao {
      * Flow автоматически обновит UI, если данные в таблице изменятся.
      * @param houseId ID дома, для которого нужно получить материалы.
      */
-    @Query("SELECT * FROM materials WHERE houseId = :houseId ORDER BY name ASC")
-    fun getMaterialsForHouse(houseId: String): Flow<List<Material>>
+    @Query("SELECT * FROM material WHERE id IN (:materialIds) ORDER BY name ASC")
+    fun getMaterialsByIds(materialIds: List<Int>): Flow<List<Material>>
 
     /**
      * Получает ОДИН конкретный материал по его ID.
      * Полезно для экрана редактирования или детального просмотра материала.
      * @param id Уникальный ID материала.
      */
-    @Query("SELECT * FROM materials WHERE id = :id")
+    @Query("SELECT * FROM material WHERE id = :id")
     fun getMaterialById(id: Int): Flow<Material>
 
     /**
@@ -35,8 +35,10 @@ interface MaterialsDao {
      * который уже существует, операция будет проигнорирована.
      */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(material: Material)
+    suspend fun insert(material: Material): Long
 
+    @Query("SELECT * FROM material ORDER BY name ASC")
+    fun getAllMaterials(): Flow<List<Material>>
     /**
      * Обновляет существующий материал.
      * Room находит нужную запись по PrimaryKey (полю 'id') объекта material.

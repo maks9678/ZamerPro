@@ -22,24 +22,12 @@ enum class Measurement(val displayName: String, val shortForm: String) {
     // Можете добавить сюда другие единицы, если нужно
 }
 
-@Entity(
-    tableName = "materials",
-    foreignKeys = [
-        ForeignKey(
-            entity = House::class,
-            parentColumns = ["id"],
-            childColumns = ["houseId"],
-            onDelete = ForeignKey.CASCADE // Если удалить дом, все его материалы тоже удалятся
-        )
-    ]
-)
+@Entity(tableName = "material")
 data class Material(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
-    val name: String,         // Название материала, например "Обои"
+    @PrimaryKey val id: Int = 0,
+    val name: String,
     val unit: MaterialsViewModel.MaterialType,
     val intake:Int,
-    val houseId: String,// Внешний ключ для связи с домом
 )
 
 enum class OpeningType {
@@ -82,6 +70,7 @@ data class House(
     val totalWallArea: Int = 0,
     val totalWindowMetre: Int = 0,
     val totalQuantityWindows: Int = 0,
+    val listMaterial:List<Int> = emptyList<Int>(),
 )
 
 data class HouseWithRooms(
@@ -133,4 +122,10 @@ class Converters {
     fun fromList(list: List<Double>): String {
         return list.joinToString(",")
     }
+    @TypeConverter
+    fun fromIntList(value: List<Int>): String = value.joinToString(",")
+
+    @TypeConverter
+    fun toIntList(value: String): List<Int> =
+        if (value.isEmpty()) emptyList() else value.split(",").map { it.toInt() }
 }

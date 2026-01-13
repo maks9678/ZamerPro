@@ -1,6 +1,7 @@
 package com.example.zamerpro.materials
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,10 +14,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -33,14 +38,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.autofill.createFromAutofillValue
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -51,7 +53,7 @@ import androidx.navigation.NavController
 import com.example.zamerpro.Class.House
 import com.example.zamerpro.Dao.AppDatabase
 import com.example.zamerpro.Class.Material
-import kotlin.compareTo
+import com.example.zamerpro.materials.MaterialsViewModel.MaterialType
 
 const val MATERIAL_SCREEN_ROUTE = "materialScreen"
 
@@ -68,16 +70,25 @@ fun MaterialsScreen(
     val houseState by materialsViewModel.currentHouse.collectAsState()
     val _houseState = houseState
     val materialsList by materialsViewModel.houseMaterials.collectAsState()
+    val allMaterials by materialsViewModel.famousMaterials.collectAsState()
     if (_houseState != null) {
         MaterialsScreenIternal(
             _houseState.name,
             _houseState,
             materialsList,
             { materialsViewModel::addNewMaterial },
-            { materialsViewModel::editMaterial },
+            { materialsViewModel::editNewMaterial },
             { materialsViewModel::removeMaterial },
             materialsViewModel::calculation,
-        )
+            materialsViewModel.newMaterialName,
+            materialsViewModel.newMaterialIntake,
+            materialsViewModel.newMaterialUnit,
+            materialsViewModel::onNewMaterialName,
+            materialsViewModel::onNewMaterialIntake,
+            materialsViewModel::onNewMaterialUnit,
+            allMaterials,
+            materialsViewModel::addNewMaterial
+            )
     }
 }
 
@@ -89,10 +100,21 @@ fun PreviewMaterialsScreen() {
         House(name = "fdg"),
         listOf
             (
-            Material(2, "fsdg", MaterialsViewModel.MaterialType.AREA, 12, ""),
-            Material(3, "fsdfdg", MaterialsViewModel.MaterialType.AREA, 112, "")
+            Material(2, "fsdg", MaterialsViewModel.MaterialType.AREA, 12),
+            Material(3, "fsdfdg", MaterialsViewModel.MaterialType.AREA, 112)
         ),
-        {}, {}, {}, { 0 }
+        {},
+        {},
+        {},
+        { 0 },
+        "dsfds",
+        33,
+        MaterialType.AREA,
+        {},
+        {},
+        {},
+        emptyList(),
+        {}
     )
 }
 
@@ -104,10 +126,9 @@ fun PreviewMaterialsItem() {
             name = "serpyanca",
             intake = 1,
             unit = MaterialsViewModel.MaterialType.AREA,
-            houseId = "3"
         ),
         Modifier.fillMaxSize(),
-        { 0 }, {}
+        { 0 }, {}, {}
     )
 }
 
@@ -119,14 +140,19 @@ fun MaterialsScreenIternal(
     calculatedMaterials: List<Material>,
     onAddMaterialClick: () -> Unit,
     onEditMaterialClick: (Material) -> Unit,
-    onRemoveFormulaMaterial: (String) -> Unit,
+    onRemoveMaterial: (Material) -> Unit,
     calculated: (Material) -> Int,
+    newMaterialName: String,
+    newMaterialIntake: Int,
+    newMaterialUnit: MaterialType,
+    onNewMaterialName: (String) -> Unit,
+    onNewMaterialIntake: (Int) -> Unit,
+    onNewMaterialUnit: (MaterialType) -> Unit,
+    allMaterials:List<Material>,
+    onNewMaterialClick:()->Unit,
 
     ) {
     var showAddDialog by remember { mutableStateOf(false) }
-    var materialName by remember { mutableStateOf("") }
-    var selectedType by remember { mutableStateOf(MaterialsViewModel.MaterialType.AREA) }
-    var intake by remember { mutableStateOf("") }
 
     Scaffold(
         bottomBar = {
@@ -157,22 +183,23 @@ fun MaterialsScreenIternal(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(color = MaterialTheme.colorScheme.background),
-                contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
+                contentPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                stickyHeader{
+                stickyHeader {
                     Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Название")
-                    Text("Расход")
-                    Text("Количество")
-                    Text("")
-                }}
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Название")
+                        Text("Расход")
+                        Text("Количество")
+                        Text("")
+                        Text("")
+                    }
+                }
                 if (calculatedMaterials.isNotEmpty()) {
                     items(calculatedMaterials, key = { it.name }) { material ->
                         // Новый Composable для этого типа данных
@@ -180,7 +207,8 @@ fun MaterialsScreenIternal(
                             material,
                             modifier = Modifier.clickable { onEditMaterialClick(material) },
                             totalMaterial = { calculated(material) },
-                            onEditMaterialClick
+                            onEditMaterialClick,
+                            onRemoveMaterial
                         )
                     }
                 }
@@ -196,16 +224,17 @@ fun MaterialsScreenIternal(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedTextField(
-                            value = materialName,
-                            onValueChange = { materialName = it },
+                            value = newMaterialName,
+                            onValueChange = { onNewMaterialName(it) },
                             label = { Text("Название материала") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                         OutlinedTextField(
-                            value = intake,
+                            value = if (newMaterialIntake == 0) "" else newMaterialIntake.toString(),
                             onValueChange = { input ->
-                                intake = input.filter { it.isDigit() }
+                                val number = input.toIntOrNull() ?: 0
+                                onNewMaterialIntake(number)
                             },
                             label = { Text("расход на 1 кв/м ") },
                             modifier = Modifier.fillMaxWidth(),
@@ -217,9 +246,9 @@ fun MaterialsScreenIternal(
 
                         ) {
                             SegmentedButton(
-                                selected = selectedType == MaterialsViewModel.MaterialType.AREA,
+                                selected = newMaterialUnit == MaterialType.AREA,
                                 onClick = {
-                                    selectedType = MaterialsViewModel.MaterialType.AREA
+                                    onNewMaterialUnit(MaterialType.AREA)
                                 },
                                 modifier = Modifier
                                     .weight(1f)
@@ -229,9 +258,9 @@ fun MaterialsScreenIternal(
                                 Text("на квадратуру")
                             }
                             SegmentedButton(
-                                selected = selectedType == MaterialsViewModel.MaterialType.METRE,
+                                selected = newMaterialUnit == MaterialType.METRE,
                                 onClick = {
-                                    selectedType = MaterialsViewModel.MaterialType.METRE
+                                    onNewMaterialUnit(MaterialType.METRE)
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(8.dp)
@@ -242,20 +271,32 @@ fun MaterialsScreenIternal(
 
                         Text(
                             text = "Количество: ${
-                                if (selectedType == MaterialsViewModel.MaterialType.AREA) house.totalWallArea
+                                if (newMaterialUnit == MaterialType.AREA) house.totalWallArea
                                 else house.totalWindowMetre
-                            } ${if (selectedType == MaterialsViewModel.MaterialType.AREA) "м²" else "м"}",
+                            } ${if (newMaterialUnit == MaterialType.AREA) "м²" else "м"}",
                             style = MaterialTheme.typography.bodySmall
                         )
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 128.dp),
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(allMaterials) {item->
+                                Button(onClick = {onAddMaterialClick()}){
+                                    Text(text = item.name)
+                                }
+                            }
+                        }
                     }
                 },
                 confirmButton = {
                     Button(
                         onClick = {
-                            if (materialName.isNotBlank() && intake.toInt() > 0) {
-                                onAddMaterialClick()
-                                materialName = ""
-                                intake = ""
+                            if (newMaterialName.isNotBlank() && newMaterialIntake > 0) {
+                                onNewMaterialClick()
+                                Log.i("MaterialScreen", "+")
                                 showAddDialog = false
                             }
                         }
@@ -280,12 +321,14 @@ fun MaterialItem(
     modifier: Modifier,
     totalMaterial: (Material) -> Int,
     onEditMaterialClick: (Material) -> Unit,
+    onRemoveMaterial: (Material) -> Unit,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = material.name, style = MaterialTheme.typography.bodyLarge)
         Text(text = material.intake.toString(), style = MaterialTheme.typography.bodyLarge)
@@ -293,19 +336,37 @@ fun MaterialItem(
             text = totalMaterial(material).toString(),
             style = MaterialTheme.typography.bodyLarge
         )
-        IconButton(
-            onClick = { onEditMaterialClick(material) },
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            Icon(
-                Icons.Filled.Delete,
-                contentDescription = "Удалить объект",
-                tint = MaterialTheme.colorScheme.error
+        Box() {
+            Row {
+                IconButton(
+                    onClick = { onRemoveMaterial(material) },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Icon(
+                        Icons.Filled.Create,
+                        contentDescription = "Редактировать объект",
+                        tint = MaterialTheme.colorScheme.secondary
 
-            )
+                    )
+                }
+                IconButton(
+                    onClick = { onEditMaterialClick(material) },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Удалить объект",
+                        tint = MaterialTheme.colorScheme.error
+
+                    )
+                }
+            }
         }
     }
 }

@@ -24,7 +24,8 @@ enum class Measurement(val displayName: String, val shortForm: String) {
 
 @Entity(tableName = "material")
 data class Material(
-    @PrimaryKey val id: Int = 0,
+    @PrimaryKey (autoGenerate = true)
+    val id: Int = 0,
     val name: String,
     val unit: MaterialsViewModel.MaterialType,
     val intake:Int,

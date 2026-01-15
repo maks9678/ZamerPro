@@ -12,6 +12,9 @@ import com.example.zamerpro.Class.House
 import com.example.zamerpro.Class.Material
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -29,8 +32,15 @@ class MaterialsViewModel(
     val currentHouse = _currentHouse
 
     private val _houseMaterials: StateFlow<List<Material>> =
-        materialsDao.getMaterialsByIds(currentHouse.value?.listMaterial ?: emptyList())
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        currentHouse.filterNotNull().flatMapLatest{
+            house->
+            materialsDao.getMaterialsByIds(house.listMaterial)
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            emptyList()
+        )
+
     val houseMaterials = _houseMaterials
 
     private val _famousMaterials: StateFlow<List<Material>> =
@@ -103,16 +113,11 @@ class MaterialsViewModel(
         val house = currentHouse.value
         return if (house != null) {
             if (material.unit == MaterialType.AREA) material.intake * house.totalWallArea
-            else material.intake * house.totalQuantityWindows
+            else material.intake * house.totalWindowMetre
         } else 0
     }
 
-    fun editNewMaterial() {
-        val material = Material(
-            name = newMaterialName,
-            intake = newMaterialIntake,
-            unit = newMaterialUnit,
-        )
+    fun editNewMaterial(material: Material) {
         viewModelScope.launch {
             materialsDao.update(material)
         }
@@ -121,6 +126,16 @@ class MaterialsViewModel(
     fun removeMaterial(material: Material) {
         viewModelScope.launch {
             materialsDao.delete(material)
+        }
+        removeMaterialFromHouse(material.id)
+    }
+    fun removeMaterialFromHouse(materialId: Int) {
+        val house = currentHouse.value ?: return
+        val updatedList = house.listMaterial.toMutableList().apply { remove(materialId) }
+
+        val updatedHouse = house.copy(listMaterial = updatedList)
+        viewModelScope.launch {
+            homeDao.updateHouse(updatedHouse) // обновляем в базе
         }
     }
 }

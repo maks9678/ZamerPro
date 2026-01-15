@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -57,6 +59,7 @@ import com.example.zamerpro.materials.MaterialsViewModel.MaterialType
 
 const val MATERIAL_SCREEN_ROUTE = "materialScreen"
 
+
 @Composable
 fun MaterialsScreen(
     modifier: Modifier = Modifier,
@@ -76,9 +79,9 @@ fun MaterialsScreen(
             _houseState.name,
             _houseState,
             materialsList,
-            { materialsViewModel::addNewMaterial },
-            { materialsViewModel::editNewMaterial },
-            { materialsViewModel::removeMaterial },
+            materialsViewModel::addNewMaterial,
+            materialsViewModel::editNewMaterial,
+            materialsViewModel::removeMaterialFromHouse,
             materialsViewModel::calculation,
             materialsViewModel.newMaterialName,
             materialsViewModel.newMaterialIntake,
@@ -87,8 +90,8 @@ fun MaterialsScreen(
             materialsViewModel::onNewMaterialIntake,
             materialsViewModel::onNewMaterialUnit,
             allMaterials,
-            materialsViewModel::addNewMaterial
-            )
+            materialsViewModel::addMaterialToHouse
+        )
     }
 }
 
@@ -100,8 +103,8 @@ fun PreviewMaterialsScreen() {
         House(name = "fdg"),
         listOf
             (
-            Material(2, "fsdg", MaterialsViewModel.MaterialType.AREA, 12),
-            Material(3, "fsdfdg", MaterialsViewModel.MaterialType.AREA, 112)
+            Material(2, "fsdg", MaterialType.AREA, 12),
+            Material(3, "fsdfdg", MaterialType.AREA, 112)
         ),
         {},
         {},
@@ -114,6 +117,7 @@ fun PreviewMaterialsScreen() {
         {},
         {},
         emptyList(),
+
         {}
     )
 }
@@ -125,7 +129,7 @@ fun PreviewMaterialsItem() {
         Material(
             name = "serpyanca",
             intake = 1,
-            unit = MaterialsViewModel.MaterialType.AREA,
+            unit = MaterialType.AREA,
         ),
         Modifier.fillMaxSize(),
         { 0 }, {}, {}
@@ -140,7 +144,7 @@ fun MaterialsScreenIternal(
     calculatedMaterials: List<Material>,
     onAddMaterialClick: () -> Unit,
     onEditMaterialClick: (Material) -> Unit,
-    onRemoveMaterial: (Material) -> Unit,
+    onRemoveMaterialFromHouse: (Int) -> Unit,
     calculated: (Material) -> Int,
     newMaterialName: String,
     newMaterialIntake: Int,
@@ -148,8 +152,8 @@ fun MaterialsScreenIternal(
     onNewMaterialName: (String) -> Unit,
     onNewMaterialIntake: (Int) -> Unit,
     onNewMaterialUnit: (MaterialType) -> Unit,
-    allMaterials:List<Material>,
-    onNewMaterialClick:()->Unit,
+    allMaterials: List<Material>,
+    onAddMaterialHouseClick: (Int) -> Unit,
 
     ) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -176,7 +180,6 @@ fun MaterialsScreenIternal(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-
         ) {
 
             LazyColumn(
@@ -190,25 +193,27 @@ fun MaterialsScreenIternal(
                 stickyHeader {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth().padding(horizontal = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Название")
-                        Text("Расход")
-                        Text("Количество")
-                        Text("")
-                        Text("")
+                        Text("Название", modifier = Modifier.weight(1f))
+                        Text("Расход", modifier = Modifier.weight(1f))
+                        Text("Кол-во", modifier = Modifier.weight(1f))
+                        Spacer(modifier = Modifier.width(100.dp))
                     }
                 }
                 if (calculatedMaterials.isNotEmpty()) {
-                    items(calculatedMaterials, key = { it.name }) { material ->
+                    items(calculatedMaterials, key = { it.id }) { material ->
                         // Новый Composable для этого типа данных
                         MaterialItem(
                             material,
-                            modifier = Modifier.clickable { onEditMaterialClick(material) },
-                            totalMaterial = { calculated(material) },
-                            onEditMaterialClick,
-                            onRemoveMaterial
+                            modifier = Modifier,
+                            totalMaterial = calculated,
+                            onEditMaterialClick = {
+                                showAddDialog = true
+                                onEditMaterialClick(material)
+                            },
+                            { onRemoveMaterialFromHouse(material.id) },
                         )
                     }
                 }
@@ -283,8 +288,12 @@ fun MaterialsScreenIternal(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            items(allMaterials) {item->
-                                Button(onClick = {onAddMaterialClick()}){
+                            val listMaterial: List<Material> = allMaterials.filter{
+                                material->
+                                material.id !in house.listMaterial
+                            }
+                            items(listMaterial) { item ->
+                                Button(onClick = { onAddMaterialHouseClick(item.id) }) {
                                     Text(text = item.name)
                                 }
                             }
@@ -295,7 +304,7 @@ fun MaterialsScreenIternal(
                     Button(
                         onClick = {
                             if (newMaterialName.isNotBlank() && newMaterialIntake > 0) {
-                                onNewMaterialClick()
+                                onAddMaterialClick()
                                 Log.i("MaterialScreen", "+")
                                 showAddDialog = false
                             }
@@ -330,16 +339,16 @@ fun MaterialItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = material.name, style = MaterialTheme.typography.bodyLarge)
-        Text(text = material.intake.toString(), style = MaterialTheme.typography.bodyLarge)
-        Text(
+        Text(modifier = Modifier.weight(1f),text = material.name, style = MaterialTheme.typography.bodyLarge)
+        Text(modifier = Modifier.weight(1f),text = material.intake.toString(), style = MaterialTheme.typography.bodyLarge)
+        Text(modifier = Modifier.weight(1f),
             text = totalMaterial(material).toString(),
             style = MaterialTheme.typography.bodyLarge
         )
-        Box() {
+        Box(modifier = Modifier.weight(1f)) {
             Row {
                 IconButton(
-                    onClick = { onRemoveMaterial(material) },
+                    onClick = { onEditMaterialClick(material) },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.secondary
@@ -353,7 +362,7 @@ fun MaterialItem(
                     )
                 }
                 IconButton(
-                    onClick = { onEditMaterialClick(material) },
+                    onClick = { onRemoveMaterial(material) },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.error

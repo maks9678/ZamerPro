@@ -9,8 +9,9 @@ import com.example.zamerpro.Class.Converters
 import com.example.zamerpro.Class.Material
 import com.example.zamerpro.Class.Opening
 import com.example.zamerpro.Class.Room
+import com.example.zamerpro.Class.Work
 
-@Database(entities = [House::class, Room::class, Opening::class, Material::class,WorkDao::class], version = 9, exportSchema = false)
+@Database(entities = [House::class, Room::class, Opening::class, Material::class, Work::class], version = 10, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun houseDao(): HomeDao
@@ -22,7 +23,6 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
-
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = androidx.room.Room.databaseBuilder(

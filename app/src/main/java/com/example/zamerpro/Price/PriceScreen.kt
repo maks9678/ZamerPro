@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +50,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.zamerpro.Class.House
 import com.example.zamerpro.Class.Work
 import com.example.zamerpro.home.previewHouse
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
@@ -79,9 +82,9 @@ fun PriceScreen(
         listCost,
         viewModel::addCost,
         viewModel::totalCost,
-        viewModel::addListSum,
+        viewModel::addListSumWork,
         sumListWork,
-        viewModel::addWork,
+        addWork = {viewModel::addWork},
     )
 
 }
@@ -119,6 +122,7 @@ fun PriceScreenInternal(
     sumListWork: Int,
     addWork:(Work)->Unit,
 ) {
+    var isShowAddWork = false
     Scaffold { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -139,18 +143,12 @@ fun PriceScreenInternal(
                         price.priceArea,
                         onAddSum
                     )
-                    PointWorkItem(
-                        "Шпаклевка метража",
-                        currentHouse.totalWindowMetre,
-                        price.priceMetre,
-                        onAddSum
-                    )
-                    PointWorkItem(
-                        "Укрывка окон",
-                        currentHouse.totalQuantityWindows,
-                        price.priceCoverWindows,
-                        onAddSum
-                    )
+                    Button(modifier = Modifier,
+                        onClick = {isShowAddWork=true}){
+                        Text(text="Добавить работу")
+                    }
+
+
                     Text(text = "Сумма по работам : ${sumListWork}")
                 }
             }
@@ -165,9 +163,54 @@ fun PriceScreenInternal(
                 Text(text = "Итого за объект : ")
             }
         }
+        if(isShowAddWork){
+AddWorkDialog({},{}) { }
+        }
     }
 }
+@Composable
+fun AddWorkDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (workName: String, deadline: String) -> Unit
+) {
+    var workName by remember { mutableStateOf("") }
+    var deadline by remember { mutableStateOf("") }
 
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Добавить работу") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = workName,
+                    onValueChange = { workName = it },
+                    label = { Text("Название работы") }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = deadline,
+                    onValueChange = { deadline = it },
+                    label = { Text("Срок выполнения") }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(workName, deadline)
+                    onDismiss()
+                }
+            ) {
+                Text("ОК")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Отмена")
+            }
+        }
+    )
+}
 @Composable
 fun Cost(
     listCost: List<CostItem>,

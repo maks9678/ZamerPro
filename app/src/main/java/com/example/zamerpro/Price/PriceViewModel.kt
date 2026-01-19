@@ -36,16 +36,12 @@ class PriceViewModel(
 
     val currentHouse: StateFlow<House?>
     val roomsInHouse: StateFlow<List<Room>>
-
     val listWork = MutableStateFlow<List<Work>>(emptyList())
+    val listSumWork = MutableStateFlow<List<Int>>(emptyList())
 
+    fun addListSumWork(sum: Int) = listSumWork.value+sum
+    val sumListWork = MutableStateFlow<Int>(listSumWork.value.sumOf { it })
 
-    var _listSumWork = MutableStateFlow<List<Int>>(emptyList())
-    val listSumWork: StateFlow<List<Int>> = _listSumWork
-    fun addListSum(sum: Int) = _listSumWork.value + sum
-
-    var _sumListWork = MutableStateFlow<Int>(listSumWork.value.sumOf { it })
-    val sumListWork: StateFlow<Int> = _sumListWork
     private val _listCost = MutableStateFlow<List<CostItem>>(emptyList())
     val listCost: StateFlow<List<CostItem>> = _listCost
 
@@ -76,29 +72,38 @@ class PriceViewModel(
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()
             )
-        suspend fun addWork(work: Work) {
-            viewModelScope.launch {
-                workDao.insertWork(work)
-                currentHouse.value?.let { house ->
-                    houseDao.updateHouse(house) // update - suspend
-                }
-            }
-        }
+    }
 
-        suspend fun updateWork(work: Work) {
-            viewModelScope.launch {
-                workDao.updateWork(work)
-            }
-        }
-
-        suspend fun deleteWorkHouse(work: Work) {
-            viewModelScope.launch {
-                workDao.deleteWork(work)
-
-                houseDao.updateHouse(currentHouse)
+    suspend fun addWork(work: Work) {
+        viewModelScope.launch {
+            workDao.insertWork(work)
+            currentHouse.value?.let { house ->
+                houseDao.updateHouse(house) // update - suspend
             }
         }
     }
+
+    suspend fun updateWork(work: Work) {
+        viewModelScope.launch {
+            workDao.updateWork(work)
+        }
+    }
+
+    suspend fun deleteWorkDB(work: Work) {
+        viewModelScope.launch {
+            workDao.deleteWork(work)
+        }
+    }
+
+    suspend fun deleteWorkHouse(work: Work) {
+        viewModelScope.launch {
+            currentHouse.value?.let { house ->
+                houseDao.updateHouse(house)
+            }
+
+        }
+    }
+
 
     class PriceViewModelFactory(
         private val application: Application,

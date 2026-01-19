@@ -11,7 +11,16 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import kotlinx.android.parcel.Parcelize
 import java.util.UUID
-
+@Entity(
+    tableName = "workList"
+)
+data class Work(
+    @PrimaryKey(autoGenerate = true)
+    val idWork:Int,
+    val name:String,
+    val priceWork:Int,
+    val areaMetre:Int,
+)
 enum class Measurement(val displayName: String, val shortForm: String) {
     METRE("метр", "м"),
     PIECE("штука", "шт"),
@@ -31,6 +40,7 @@ onDelete = ForeignKey.CASCADE // Если удалить дом, все его �
 )
 ]
 )
+
 data class Material(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
@@ -39,19 +49,7 @@ data class Material(
     val unit: String,         // Единица измерения, например "рулон" или "кв.м."
     val houseId: String          // Внешний ключ для связи с домом
 )
-class HomeSupplies(
-    val id: String = UUID.randomUUID().toString(),
-    val houseId: String,
-    val listOfMaterials: List<Material>,
-    val plasticCorners: Int,
-    val windowJoining:Int,
-    val serpyanka: Int,
-    val fugen:Int,
-    val primer:Int,
-    val putty:Int,
-    val grindingWheels:Int,
-    val extraMaterial:Int,
-)
+
 enum class OpeningType {
     DOOR, WINDOW, OTHER_METRE,OTHER_AREA
 }
@@ -91,6 +89,7 @@ data class House(
     val totalWallArea: Int = 0,
     val totalWindowMetre: Int = 0,
     val totalQuantityWindows: Int = 0,
+    val listWork:List<Int> =emptyList(),
 )
 data class HouseWithRooms(
     @Embedded

@@ -2,28 +2,29 @@ package com.example.zamerpro.Price
 
 import android.app.Application
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,23 +33,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.zamerpro.Class.House
-import com.example.zamerpro.Class.Room
-import com.example.zamerpro.Dao.HomeDao
-import com.example.zamerpro.Dao.RoomDao
+import com.example.zamerpro.Class.Work
 import com.example.zamerpro.home.previewHouse
-import com.example.zamerpro.home.previewsRoom
-import com.example.zamerpro.ui.theme.Text
-import kotlinx.coroutines.flow.forEach
 
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
@@ -71,6 +70,8 @@ fun PriceScreen(
     val currentHouse by viewModel.currentHouse.collectAsState()
     val listCost by viewModel.listCost.collectAsState()
     val sumListWork by viewModel.sumListWork.collectAsState()
+    val listWork by viewModel.listWork.collectAsState()
+
 
     PriceScreenInternal(
         navController,
@@ -79,7 +80,8 @@ fun PriceScreen(
         viewModel::addCost,
         viewModel::totalCost,
         viewModel::addListSum,
-        sumListWork
+        sumListWork,
+        viewModel::addWork,
     )
 
 }
@@ -100,7 +102,8 @@ fun Preview() {
         { _, _ -> 0 },
         { 12 },
         {},
-        12
+        12,
+        {  }
     )
 }
 
@@ -109,11 +112,12 @@ fun Preview() {
 fun PriceScreenInternal(
     navController: NavController,
     currentHouse: House?,
-    onListCost:List<CostItem>,
+    onListCost: List<CostItem>,
     onAddCost: (String, Int) -> Unit,
     onTotalCost: () -> Int,
     onAddSum: (Int) -> Unit,
-    sumListWork:Int
+    sumListWork: Int,
+    addWork:(Work)->Unit,
 ) {
     Scaffold { paddingValues ->
         LazyColumn(
@@ -281,10 +285,52 @@ fun PointWorkItem(
                 val priceWorkInt = priceWorkText.toIntOrNull() ?: 0
                 val sum = amountWork * priceWorkInt
                 Text(text = " р =")
-                Text(text = "${sum} рублей")
+                Text(text = "$sum р")
                 onAddSum(sum)
             }
         }
     }
 }
+@Composable
+fun CustomOutlinedBasicTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    width: Dp = 30.dp,
+    height: Dp = 30.dp,
+    labelPadding: PaddingValues = PaddingValues(bottom = 4.dp),
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    Column(modifier = modifier.width(width)) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(labelPadding),
+            fontSize = 14.sp,
+            color = if (isFocused) Color(0xFF6200EE) else Color.Gray
+        )
+        Box(
+            modifier = Modifier
+                .height(height)
+                .border(
+                    width = if (isFocused) 2.dp else 1.dp,
+                    color = if (isFocused) Color(0xFF6200EE) else Color.Gray,
+                    shape = RoundedCornerShape(4.dp)
+                )
+                .padding(horizontal = 8.dp, vertical = 12.dp)
+                .onFocusChanged { focusState ->
+                    isFocused = focusState.isFocused
+                },
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = {},
+                singleLine = true,
+                modifier = Modifier.fillMaxSize(),
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black)
+            )
+        }
+    }
+}
+
 

@@ -3,6 +3,7 @@ package com.example.zamerpro.Price
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,8 +26,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,11 +57,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
-data class Price(
-    var priceArea: Int = 700,
-    var priceMetre: Int = 700,
-    var priceCoverWindows: Int = 300,
-)
+enum class Multiplicand { SQUARE, METRE, CUSTOM }
 
 @ExperimentalMaterial3Api
 @Composable
@@ -84,7 +83,8 @@ fun PriceScreen(
         viewModel::totalCost,
         viewModel::addListSumWork,
         sumListWork,
-        addWork = {viewModel::addWork},
+        addWork = { viewModel::addWork },
+        listWork
     )
 
 }
@@ -106,7 +106,8 @@ fun Preview() {
         { 12 },
         {},
         12,
-        {  }
+        { },
+        emptyList(),
     )
 }
 
@@ -120,7 +121,8 @@ fun PriceScreenInternal(
     onTotalCost: () -> Int,
     onAddSum: (Int) -> Unit,
     sumListWork: Int,
-    addWork:(Work)->Unit,
+    addWork: (Work) -> Unit,
+    listWork: List<Work>,
 ) {
     var isShowAddWork = false
     Scaffold { paddingValues ->
@@ -133,25 +135,23 @@ fun PriceScreenInternal(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val price = Price()
             item {
                 Text("Виды работ:")
                 currentHouse?.let {
-                    PointWorkItem(
-                        "Шпаклевка квадратуры",
-                        currentHouse.totalWallArea,
-                        price.priceArea,
-                        onAddSum
-                    )
-                    Button(modifier = Modifier,
-                        onClick = {isShowAddWork=true}){
-                        Text(text="Добавить работу")
+                    listWork.forEach { work ->
+                        PointWorkItem(work, onAddSum, it)
+                    }
+                    Button(
+                        modifier = Modifier,
+                        onClick = { isShowAddWork = true }) {
+                        Text(text = "Добавить работу")
                     }
 
 
                     Text(text = "Сумма по работам : ${sumListWork}")
                 }
             }
+
             item {
                 Cost(
                     onListCost,
@@ -163,24 +163,36 @@ fun PriceScreenInternal(
                 Text(text = "Итого за объект : ")
             }
         }
-        if(isShowAddWork){
-AddWorkDialog({},{}) { }
+        if (isShowAddWork) {
+            AddWorkDialog({}, addWork)
         }
     }
 }
+
 @Composable
 fun AddWorkDialog(
     onDismiss: () -> Unit,
-    onConfirm: (workName: String, deadline: String) -> Unit
+    onConfirm: (work: Work) -> Unit
 ) {
     var workName by remember { mutableStateOf("") }
-    var deadline by remember { mutableStateOf("") }
+    var priceWork by remember { mutableStateOf("") }
+    var squareMetreCustom by remember { mutableStateOf(Multiplicand.SQUARE) }
+    var customMultiplicand by remember { mutableStateOf<Int?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = "Добавить работу") },
         text = {
             Column {
+                Multiplicand.values().forEach { option ->
+                    Row(Modifier.clickable { squareMetreCustom = option }) {
+                        RadioButton(
+                            selected = { squareMetreCustom == option },
+                            onClick = { squareMetreCustom = option }
+                        )
+                        Text(option.name)
+                    }
+                }
                 OutlinedTextField(
                     value = workName,
                     onValueChange = { workName = it },
@@ -188,8 +200,8 @@ fun AddWorkDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = deadline,
-                    onValueChange = { deadline = it },
+                    value = priceWork,
+                    onValueChange = { priceWork = it },
                     label = { Text("Срок выполнения") }
                 )
             }
@@ -197,7 +209,8 @@ fun AddWorkDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onConfirm(workName, deadline)
+                    val work = Work(name = workName, priceWork = priceWork.toInt())
+                    onConfirm(work)
                     onDismiss()
                 }
             ) {
@@ -283,13 +296,12 @@ fun Cost(
 
 @Composable
 fun PointWorkItem(
-    nameWork: String,
-    amountWork: Int,
-    priceWork: Int,
+    work: Work,
     onAddSum: (Int) -> Unit,
+    house: House,
     modifier: Modifier = Modifier,
 ) {
-    var priceWorkText by remember { mutableStateOf(priceWork.toString()) }
+    var priceWorkText by remember { mutableStateOf(work.priceWork.toString()) }
 
     Card(
         modifier = Modifier
@@ -298,7 +310,7 @@ fun PointWorkItem(
     ) {
         Column(modifier = Modifier.padding(16.dp, 8.dp)) {
             Text(
-                text = nameWork,
+                text = work.name,
                 textAlign = TextAlign.Start,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -308,7 +320,7 @@ fun PointWorkItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(text = "$amountWork *")
+                Text(text = "${work.priceWork} *")
 
                 OutlinedTextField(
                     value = priceWorkText,
@@ -326,7 +338,11 @@ fun PointWorkItem(
                 )
 
                 val priceWorkInt = priceWorkText.toIntOrNull() ?: 0
-                val sum = amountWork * priceWorkInt
+                val multiplicandTwo =
+                    if (work.areaMetreCustom == Multiplicand.METRE) {
+
+                    }
+                val sum =  * priceWorkInt
                 Text(text = " р =")
                 Text(text = "$sum р")
                 onAddSum(sum)
@@ -334,6 +350,7 @@ fun PointWorkItem(
         }
     }
 }
+
 @Composable
 fun CustomOutlinedBasicTextField(
     value: String,
@@ -375,5 +392,57 @@ fun CustomOutlinedBasicTextField(
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun AreaSelector() {
+    var selectedOption by remember { mutableStateOf("square") } // "square", "meter", "custom"
+    var customInput by remember { mutableStateOf("") }
+
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(
+                selected = selectedOption == "square",
+                onClick = { selectedOption = "square" }
+            )
+            Text("Квадратура")
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(
+                selected = selectedOption == "meter",
+                onClick = { selectedOption = "meter" }
+            )
+            Text("Метраж")
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(
+                selected = selectedOption == "custom",
+                onClick = { selectedOption = "custom" }
+            )
+            Text("Другое")
+        }
+
+        if (selectedOption == "custom") {
+            OutlinedTextField(
+                value = customInput,
+                onValueChange = { customInput = it },
+                label = { Text("Введите свой вариант") }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            "Выбрано: ${
+            when (selectedOption) {
+                "square" -> "Квадратура"
+                "meter" -> "Метраж"
+                "custom" -> customInput.ifBlank { "Нет ввода" }
+                else -> ""
+            }
+        }")
+    }
+}
+
 
 

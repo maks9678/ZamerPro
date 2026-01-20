@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Relation
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import com.example.zamerpro.Price.Multiplicand
 import kotlinx.android.parcel.Parcelize
 import java.util.UUID
 @Entity(
@@ -19,7 +20,8 @@ data class Work(
     val idWork:Int,
     val name:String,
     val priceWork:Int,
-    val areaMetre:Int,
+    val areaMetreCustom: Multiplicand,
+    val customMultiplicand:Int? = null,
 )
 enum class Measurement(val displayName: String, val shortForm: String) {
     METRE("метр", "м"),

@@ -34,12 +34,18 @@ class PriceViewModel(
     private val workDao: WorkDao,
 ) : ViewModel() {
 
+    val listAvailableWorks = workDao.getAllWorks()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
     val currentHouse: StateFlow<House?>
     val roomsInHouse: StateFlow<List<Room>>
     val listWork = MutableStateFlow<List<Work>>(emptyList())
     val listSumWork = MutableStateFlow<List<Int>>(emptyList())
 
-    fun addListSumWork(sum: Int) = listSumWork.value+sum
+    fun addListSumWork(sum: Int) = listSumWork.value + sum
     val sumListWork = MutableStateFlow<Int>(listSumWork.value.sumOf { it })
 
     private val _listCost = MutableStateFlow<List<CostItem>>(emptyList())
@@ -72,6 +78,12 @@ class PriceViewModel(
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()
             )
+    }
+
+    fun addWorkHouse(idWork: Int) {
+        if(currentHouse !=null) {
+            currentHouse.value?.copy(listWork = currentHouse.value!!.listWork + idWork)
+        }
     }
 
     suspend fun addWork(work: Work) {

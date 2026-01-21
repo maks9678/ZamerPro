@@ -12,17 +12,20 @@ import androidx.room.TypeConverters
 import com.example.zamerpro.Price.Multiplicand
 import kotlinx.android.parcel.Parcelize
 import java.util.UUID
+
+@TypeConverters(Converters::class)
 @Entity(
     tableName = "workList"
 )
 data class Work(
     @PrimaryKey(autoGenerate = true)
-    val idWork:Int,
-    val name:String,
-    val priceWork:Int,
-    val areaMetreCustom: Multiplicand,
-    val customMultiplicand:Int? = null,
+    val idWork: Int = 0,
+    val name: String,
+    val priceWork: Int = 0,
+    val areaMetreCustom: Multiplicand = Multiplicand.SQUARE,
+    val customMultiplicand: Int = 0,
 )
+
 enum class Measurement(val displayName: String, val shortForm: String) {
     METRE("метр", "м"),
     PIECE("штука", "шт"),
@@ -31,16 +34,17 @@ enum class Measurement(val displayName: String, val shortForm: String) {
     LITRE("литр", "л");
     // Можете добавить сюда другие единицы, если нужно
 }
+
 @Entity(
-tableName = "materials",
-foreignKeys = [
-ForeignKey(
-entity = House::class,
-parentColumns = ["id"],
-childColumns = ["houseId"],
-onDelete = ForeignKey.CASCADE // Если удалить дом, все его материалы тоже удалятся
-)
-]
+    tableName = "materials",
+    foreignKeys = [
+        ForeignKey(
+            entity = House::class,
+            parentColumns = ["id"],
+            childColumns = ["houseId"],
+            onDelete = ForeignKey.CASCADE // Если удалить дом, все его материалы тоже удалятся
+        )
+    ]
 )
 
 data class Material(
@@ -53,7 +57,7 @@ data class Material(
 )
 
 enum class OpeningType {
-    DOOR, WINDOW, OTHER_METRE,OTHER_AREA
+    DOOR, WINDOW, OTHER_METRE, OTHER_AREA
 }
 
 @Entity(
@@ -75,6 +79,7 @@ data class Opening(
     val width: Double,
     val height: Double
 )
+
 //НАДО ПЕРЕМЕСТИТЬ В КОМНАТУ
 @Parcelize
 data class ItemDimension(
@@ -91,8 +96,9 @@ data class House(
     val totalWallArea: Int = 0,
     val totalWindowMetre: Int = 0,
     val totalQuantityWindows: Int = 0,
-    val listWork:List<Int> =emptyList(),
+    val listWork: List<Int> = emptyList(),
 )
+
 data class HouseWithRooms(
     @Embedded
     val house: House,
@@ -103,6 +109,7 @@ data class HouseWithRooms(
     )
     val rooms: List<Room>
 )
+
 @Parcelize
 @Entity(tableName = "rooms")
 @TypeConverters(Converters::class)
@@ -117,8 +124,9 @@ data class Room(
     var windowMetre: Double,
     val wallArea: Double,// Площадь СТЕН (для обоев): floorPerimeter * height
     val floorArea: Double,// Площадь ПОЛА: width * length
-    val countingWindows :Int,
-): Parcelable
+    val countingWindows: Int,
+) : Parcelable
+
 data class RoomWithObjects(
     @Embedded
     val room: Room,
@@ -129,6 +137,7 @@ data class RoomWithObjects(
     )
     val openings: List<Opening> // Список всех дверей и окон
 )
+
 class Converters {
     @TypeConverter
     fun fromString(value: String?): List<Double> {
@@ -139,4 +148,12 @@ class Converters {
     fun fromList(list: List<Double>): String {
         return list.joinToString(",")
     }
+
+    @TypeConverter
+    fun fromIntList(list: List<Int>?): String = list?.joinToString(",") ?: ""
+
+    @TypeConverter
+    fun toIntList(data: String): List<Int> =
+        if (data.isEmpty()) emptyList() else data.split(",").map { it.toInt() }
+
 }

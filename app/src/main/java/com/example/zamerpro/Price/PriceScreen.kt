@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -57,7 +60,11 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
-enum class Multiplicand { SQUARE, METRE, CUSTOM }
+enum class Multiplicand(val displayName: String) {
+    SQUARE("квадратура"),
+    METRE("метраж"),
+    CUSTOM("свое число")
+}
 
 @ExperimentalMaterial3Api
 @Composable
@@ -73,7 +80,7 @@ fun PriceScreen(
     val listCost by viewModel.listCost.collectAsState()
     val sumListWork by viewModel.sumListWork.collectAsState()
     val listWork by viewModel.listWork.collectAsState()
-
+    val listAvailableWorks by viewModel.listAvailableWorks.collectAsState()
 
     PriceScreenInternal(
         navController,
@@ -83,8 +90,10 @@ fun PriceScreen(
         viewModel::totalCost,
         viewModel::addListSumWork,
         sumListWork,
-        addWork = { viewModel::addWork },
-        listWork
+        addWork = {viewModel::addWork} ,
+        listWork,
+        listAvailableWorks,
+        addWorkHouse = viewModel::addWorkHouse
     )
 
 }
@@ -108,6 +117,8 @@ fun Preview() {
         12,
         { },
         emptyList(),
+        emptyList(),
+        {}
     )
 }
 
@@ -123,8 +134,10 @@ fun PriceScreenInternal(
     sumListWork: Int,
     addWork: (Work) -> Unit,
     listWork: List<Work>,
+    listAvailableWorks:List<Work>,
+    addWorkHouse: (Int) -> Unit
 ) {
-    var isShowAddWork = false
+    var isShowAddWork by remember { mutableStateOf(false) }
     Scaffold { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -164,13 +177,21 @@ fun PriceScreenInternal(
             }
         }
         if (isShowAddWork) {
-            AddWorkDialog({}, addWork)
+            AddWorkDialog(listAvailableWorks,{},{}, addWork)
         }
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+fun PreviewAddWorkDialog() {
+    AddWorkDialog(emptyList(),{},{}, {})
+}
+
 @Composable
 fun AddWorkDialog(
+    listAvailableWorks: List<Work>,
+    addWorkHouse: (Work) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (work: Work) -> Unit
 ) {
@@ -184,32 +205,56 @@ fun AddWorkDialog(
         title = { Text(text = "Добавить работу") },
         text = {
             Column {
-                Multiplicand.values().forEach { option ->
-                    Row(Modifier.clickable { squareMetreCustom = option }) {
-                        RadioButton(
-                            selected = { squareMetreCustom == option },
-                            onClick = { squareMetreCustom = option }
-                        )
-                        Text(option.name)
-                    }
-                }
                 OutlinedTextField(
                     value = workName,
                     onValueChange = { workName = it },
                     label = { Text("Название работы") }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = priceWork,
                     onValueChange = { priceWork = it },
-                    label = { Text("Срок выполнения") }
+                    label = { Text("цена кв/м") }
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Multiplicand.entries.forEach { option ->
+                        Column(Modifier.clickable { squareMetreCustom = option }) {
+                            RadioButton(
+                                selected = squareMetreCustom == option,
+                                onClick = { squareMetreCustom = option }
+                            )
+                            Text(option.displayName)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text("Доступные работы")
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(8.dp),
+                ) {
+                    items(listAvailableWorks) { item ->
+                        Button(modifier = Modifier.fillMaxWidth(), onClick = {addWorkHouse(item)}) {
+                            Text("${item.name}")
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    val work = Work(name = workName, priceWork = priceWork.toInt())
+                    val work = Work(
+                        name = workName,
+                        priceWork = priceWork.toInt(),
+                        areaMetreCustom = squareMetreCustom
+                    )
                     onConfirm(work)
                     onDismiss()
                 }
@@ -224,6 +269,75 @@ fun AddWorkDialog(
         }
     )
 }
+
+@Composable
+@Preview(showBackground = true)
+fun PreviewPointWorkItem() {
+    PointWorkItem(
+        Work(name = "dsgsd", priceWork = 12, areaMetreCustom = Multiplicand.METRE),
+        {},
+        house = House(name = "adfsas")
+    )
+}
+
+@Composable
+fun PointWorkItem(
+    work: Work,
+    onAddSum: (Int) -> Unit,
+    house: House,
+    modifier: Modifier = Modifier,
+) {
+    var priceWorkText by remember { mutableStateOf(work.priceWork.toString()) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp, 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp, 8.dp)) {
+            Text(
+                text = work.name,
+                textAlign = TextAlign.Start,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = priceWorkText,
+                    onValueChange = { input ->
+                        if (input.all { it.isDigit() }) {
+                            priceWorkText = input
+                        }
+                    },
+                    label = { Text("Цена") },
+                    modifier = Modifier
+                        .width(70.dp)
+                        .height(60.dp), // стандартная высота TextField
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+
+                val priceWork = priceWorkText.toIntOrNull() ?: 0
+                val multiplicandTwo =
+                    if (work.areaMetreCustom == Multiplicand.METRE) {
+                        house.totalWindowMetre
+                    } else if (work.areaMetreCustom == Multiplicand.SQUARE) {
+                        house.totalWallArea
+                    } else work.customMultiplicand
+
+                val sum = multiplicandTwo * priceWork
+                Text(text = " р =")
+                Text(text = "$sum р")
+                onAddSum(sum)
+            }
+        }
+    }
+}
+
 @Composable
 fun Cost(
     listCost: List<CostItem>,
@@ -292,63 +406,6 @@ fun Cost(
     )
 
 
-}
-
-@Composable
-fun PointWorkItem(
-    work: Work,
-    onAddSum: (Int) -> Unit,
-    house: House,
-    modifier: Modifier = Modifier,
-) {
-    var priceWorkText by remember { mutableStateOf(work.priceWork.toString()) }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp, 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp, 8.dp)) {
-            Text(
-                text = work.name,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(text = "${work.priceWork} *")
-
-                OutlinedTextField(
-                    value = priceWorkText,
-                    onValueChange = { input ->
-                        if (input.all { it.isDigit() }) {
-                            priceWorkText = input
-                        }
-                    },
-                    label = { Text("Цена") },
-                    modifier = Modifier
-                        .width(70.dp)
-                        .height(60.dp), // стандартная высота TextField
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-
-                val priceWorkInt = priceWorkText.toIntOrNull() ?: 0
-                val multiplicandTwo =
-                    if (work.areaMetreCustom == Multiplicand.METRE) {
-
-                    }
-                val sum =  * priceWorkInt
-                Text(text = " р =")
-                Text(text = "$sum р")
-                onAddSum(sum)
-            }
-        }
-    }
 }
 
 @Composable
@@ -434,13 +491,13 @@ fun AreaSelector() {
 
         Text(
             "Выбрано: ${
-            when (selectedOption) {
-                "square" -> "Квадратура"
-                "meter" -> "Метраж"
-                "custom" -> customInput.ifBlank { "Нет ввода" }
-                else -> ""
-            }
-        }")
+                when (selectedOption) {
+                    "square" -> "Квадратура"
+                    "meter" -> "Метраж"
+                    "custom" -> customInput.ifBlank { "Нет ввода" }
+                    else -> ""
+                }
+            }")
     }
 }
 

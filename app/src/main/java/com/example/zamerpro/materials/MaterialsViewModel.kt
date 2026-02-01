@@ -1,5 +1,6 @@
 package com.example.zamerpro.materials
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,15 +12,23 @@ import com.example.zamerpro.Class.House
 import com.example.zamerpro.Class.Material
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-data class CalculatedMaterial(
-    val name: String,
-    val value: String
-)
-
+enum class MaterialType {
+    AREA, // Квадратура
+    METRE  // Метраж
+}
+data class MaterialEditorState(
+    val id: Int? = null,          // null → ADD, not null → EDIT
+    val name: String = "",
+    val intake: Int = 0,
+    val unit: MaterialType = MaterialType.AREA,
+) {
+    val isValid: Boolean
+        get() = name.isNotBlank() && intake > 0
+}
 class MaterialsViewModel(
     val houseId: String,
     private val materialsDao: MaterialsDao,
@@ -31,83 +40,115 @@ class MaterialsViewModel(
         SharingStarted.WhileSubscribed(5000),
         null
     )
-    val materialList: StateFlow<List<Material>> = materialsDao.getMaterialsForHouse(houseId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     val currentHouse = _currentHouse
-    val calculatedMaterials: StateFlow<List<CalculatedMaterial>> = _currentHouse.map { house ->
-        if (house != null) {
-            getCalculatedMaterials(house) // Эта функция теперь возвращает List<CalculatedMaterial>
-        } else {
+    private val _houseMaterials: StateFlow<List<Material>> =
+        currentHouse.filterNotNull().flatMapLatest { house ->
+            materialsDao.getMaterialsByIds(house.listMaterial)
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
             emptyList()
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        )
 
-    // 2. Поток для ДОБАВЛЕННЫХ ВРУЧНУЮ материалов (без изменений)
-    val customMaterials: StateFlow<List<Material>> = materialsDao.getMaterialsForHouse(houseId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val houseMaterials = _houseMaterials
 
+    private val _famousMaterials: StateFlow<List<Material>> =
+        materialsDao.getAllMaterials().stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000), emptyList()
+        )
+    val famousMaterials = _famousMaterials // известные материалы
 
-    // UI State для полей ввода (без изменений)
-    var newMaterialName by mutableStateOf("")
-    var newMaterialQuantity by mutableStateOf("")
-    var newMaterialUnit by mutableStateOf("")
-
-    fun addNewMaterial() {
-        val quantity = newMaterialQuantity.toDoubleOrNull()
-        if (newMaterialName.isNotBlank() && quantity != null) {
-            val material = Material(
-                name = newMaterialName,
-                quantity = quantity.toInt(),
-                unit = newMaterialUnit.ifBlank { "шт" },
-                houseId = this.houseId
-            )
-            viewModelScope.launch {
-                materialsDao.insert(material)
-            }
-            newMaterialName = ""
-            newMaterialQuantity = ""
-            newMaterialUnit = ""
-        }
+    var editorState by mutableStateOf(MaterialEditorState())
+        private set
+    fun updateName(name: String) {
+        editorState = editorState.copy(name = name)
     }
 
-    private fun getCalculatedMaterials(currentHouse: House): List<CalculatedMaterial> {
-        return listOf(
-            CalculatedMaterial("Серпянка", "${calculationSerpyanka(currentHouse)} м"),
-            CalculatedMaterial("Фугенфюллер", "${calculationFugen(currentHouse)} мешок(ка)"),
-            CalculatedMaterial("Грунтовка", "${calculationPrimer(currentHouse)} л"),
-            CalculatedMaterial("Шпаклевка", "${calculationPutty(currentHouse)} мешок(ка)"),
-            CalculatedMaterial(
-                "Шлифовальные круги",
-                "${calculationGrindingWheels(currentHouse)} шт"
-            )
+    fun updateIntake(intake: Int) {
+        editorState = editorState.copy(intake = intake)
+    }
+
+    fun updateUnit(unit: MaterialType) {
+        editorState = editorState.copy(unit = unit)
+    }
+
+    fun startAddMaterial() {
+        editorState = MaterialEditorState()
+    }
+
+    fun startEditMaterial(material: Material) {
+        editorState = MaterialEditorState(
+            id = material.id,
+            name = material.name,
+            intake = material.intake,
+            unit = material.unit
         )
     }
+    fun clearEditor() {
+        editorState = MaterialEditorState()
+    }
+    fun saveMaterial() {
+        if (!editorState.isValid) return
 
-    private fun calculationFugen(currentHouse: House): Int {
-        val wallExpenditureFugen = currentHouse.totalWallArea / 100
-        val windowExpenditureFugen = currentHouse.totalWindowMetre / 50
-        return wallExpenditureFugen + windowExpenditureFugen
+        viewModelScope.launch {
+            if (editorState.id == null) {
+                val id = materialsDao.insert(
+                    Material(
+                        name = editorState.name,
+                        intake = editorState.intake,
+                        unit = editorState.unit
+                    )
+                )
+                addMaterialToHouse(id.toInt())
+            } else {
+                materialsDao.update(
+                    Material(
+                        id = editorState.id!!,
+                        name = editorState.name,
+                        intake = editorState.intake,
+                        unit = editorState.unit
+                    )
+                )
+            }
+        }
     }
 
-    private fun calculationPrimer(currentHouse: House): Int {
-        val wallExpenditurePrimer = currentHouse.totalWallArea / 100
-        return wallExpenditurePrimer
+    fun addMaterialToHouse(idMaterial: Int) {
+
+        viewModelScope.launch {
+            currentHouse.value?.let { house ->
+                val updatedList = house.listMaterial.toMutableList()
+                updatedList.add(idMaterial)
+
+                val updatedHouse = house.copy(listMaterial = updatedList)
+                homeDao.updateHouse(updatedHouse)
+            }
+        }
     }
 
-    private fun calculationSerpyanka(currentHouse: House): Int {
-        val wallExpenditureSerpyanka = currentHouse.totalWallArea * 1.5
-        return wallExpenditureSerpyanka.toInt()
+    fun calculation(material: Material): Int {
+        val house = currentHouse.value
+        return if (house != null) {
+            if (material.unit == MaterialType.AREA) material.intake * house.totalWallArea
+            else material.intake * house.totalWindowMetre
+        } else 0
     }
 
-    private fun calculationPutty(currentHouse: House): Int {
-        val wallExpenditurePutty = currentHouse.totalWallArea * 2 / 25
-        return wallExpenditurePutty
+    fun removeMaterial(material: Material) {
+        viewModelScope.launch {
+            materialsDao.delete(material)
+        }
+        removeMaterialFromHouse(material.id)
     }
 
-    private fun calculationGrindingWheels(currentHouse: House): Int {
-        val wallExpenditureGrindingWheels = currentHouse.totalWallArea / 20
-        return wallExpenditureGrindingWheels
-    }
+    fun removeMaterialFromHouse(materialId: Int) {
+        val house = currentHouse.value ?: return
+        val updatedList = house.listMaterial.toMutableList().apply { remove(materialId) }
 
+        val updatedHouse = house.copy(listMaterial = updatedList)
+        viewModelScope.launch {
+            homeDao.updateHouse(updatedHouse) // обновляем в базе
+        }
+    }
 }

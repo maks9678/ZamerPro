@@ -11,7 +11,7 @@ import com.example.zamerpro.Class.Opening
 import com.example.zamerpro.Class.Room
 import com.example.zamerpro.Class.Work
 
-@Database(entities = [House::class, Room::class, Opening::class, Material::class, Work::class], version = 11, exportSchema = false)
+@Database(entities = [House::class, Room::class, Opening::class, Material::class, Work::class], version = 18, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun houseDao(): HomeDao
@@ -30,11 +30,6 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "zamer_pro_database"
                 )
-                    // 2. УДАЛЯЕМ ВСЕ МИГРАЦИИ
-                    // .addMigrations(...)
-
-                    // 3. ДОБАВЛЯЕМ ДЕСТРУКТИВНУЮ МИГРАЦИЮ
-                    // Эта команда говорит Room: "При обновлении версии удали старую БД и создай новую".
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
@@ -43,3 +38,4 @@ abstract class AppDatabase : RoomDatabase() {
         }
     }
 }
+

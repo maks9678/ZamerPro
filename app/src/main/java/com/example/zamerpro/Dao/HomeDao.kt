@@ -2,6 +2,7 @@ package com.example.zamerpro.Dao
 
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Ignore
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -19,7 +20,7 @@ interface HomeDao {
     @Query("SELECT * FROM houses WHERE id = :houseId")
     suspend fun getHouseByIdSuspend(houseId: String): House? // Для однократного получения
 
-    @Update
+    @Update(onConflict = OnConflictStrategy.IGNORE )
     suspend fun updateHouse(house: House)
 
     @Delete

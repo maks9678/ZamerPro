@@ -236,8 +236,12 @@ class RoomViewModel(
             }
         }
         val floorArea = width * length
-        val wallArea = (width + length) * 2 * length
-        val countingWindows =_windows.value.filter{it.height.toInt()!=0 && it.width.toInt()!=0}.size
+        val wallArea = (width + length) * 2 * height
+        val countingWindows = _windows.value.filter { window ->
+            val w = window.width.toDoubleOrNull() ?: 0.0
+            val h = window.height.toDoubleOrNull() ?: 0.0
+            w > 0 && h > 0
+        }.size
 
         // 3. Создаем объект Room для сохранения
         val roomToSave = Room(
@@ -298,29 +302,16 @@ class RoomViewModel(
             }
 
             // 2. Сразу же обновляем дом в той же транзакции
-            val rooms = roomDao.getRoomsForHouseSuspend(houseId)
-            val totalWallArea = rooms.sumOf { it.wallArea }.toInt()
-            val totalWindowMetre = rooms.sumOf { it.windowMetre }.toInt()
-            val totalQuantityWindows = rooms.sumOf { it.countingWindows }
-            val houseToUpdate = homeDao.getHouseByIdSuspend(houseId)
-            houseToUpdate?.let {
-                homeDao.updateHouse(
-                    it.copy(
-                        totalWallArea = totalWallArea,
-                        totalWindowMetre = totalWindowMetre,
-                        totalQuantityWindows = totalQuantityWindows
-                    ))
-            }
             updateHouseTotals()
         }
     }
 
-    // ✅ Новая приватная функция для обновления родительского дома
+    // ✅ Приватная функция для обновления родительского дома
     private suspend fun updateHouseTotals() {
-        val rooms = roomDao.getRoomsForHouseSuspend(houseId) // Получаем свежий список комнат
+        val rooms = roomDao.getRoomsForHouseSuspend(houseId)
         val totalWallArea = rooms.sumOf { it.wallArea }.toInt()
         val totalWindowMetre = rooms.sumOf { it.windowMetre }.toInt()
-        val totalQuantityWindows = rooms.sumOf{it.countingWindows}
+        val totalQuantityWindows = rooms.sumOf { it.countingWindows }
         val houseToUpdate = homeDao.getHouseByIdSuspend(houseId)
         houseToUpdate?.let {
             homeDao.updateHouse(
@@ -328,6 +319,7 @@ class RoomViewModel(
                     totalWallArea = totalWallArea,
                     totalWindowMetre = totalWindowMetre,
                     totalQuantityWindows = totalQuantityWindows,
+                    lastModified = System.currentTimeMillis()
                 )
             )
         }

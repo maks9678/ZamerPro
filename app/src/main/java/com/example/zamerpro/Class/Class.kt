@@ -10,6 +10,8 @@ import androidx.room.Relation
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.example.zamerpro.Price.Multiplicand
+import com.example.zamerpro.materials.MaterialType
+import com.example.zamerpro.materials.MaterialsViewModel
 import kotlinx.android.parcel.Parcelize
 import java.util.UUID
 
@@ -35,6 +37,8 @@ enum class Measurement(val displayName: String, val shortForm: String) {
     // Можете добавить сюда другие единицы, если нужно
 }
 
+@Entity(tableName = "material")
+
 @Entity(
     tableName = "materials",
     foreignKeys = [
@@ -48,12 +52,11 @@ enum class Measurement(val displayName: String, val shortForm: String) {
 )
 
 data class Material(
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey (autoGenerate = true)
     val id: Int = 0,
-    val name: String,         // Название материала, например "Обои"
-    val quantity: Int,     // Количество, например 10.5
-    val unit: String,         // Единица измерения, например "рулон" или "кв.м."
-    val houseId: String          // Внешний ключ для связи с домом
+    val name: String,
+    val unit: MaterialType,
+    val intake:Int,
 )
 
 enum class OpeningType {
@@ -96,6 +99,7 @@ data class House(
     val totalWallArea: Int = 0,
     val totalWindowMetre: Int = 0,
     val totalQuantityWindows: Int = 0,
+    val listMaterial:List<Int> = emptyList<Int>(),
     val listWork: List<Int> = emptyList(),
 )
 
@@ -148,6 +152,12 @@ class Converters {
     fun fromList(list: List<Double>): String {
         return list.joinToString(",")
     }
+    @TypeConverter
+    fun fromIntList(value: List<Int>): String = value.joinToString(",")
+
+    @TypeConverter
+    fun toIntList(value: String): List<Int> =
+        if (value.isEmpty()) emptyList() else value.split(",").map { it.toInt() }
 
     @TypeConverter
     fun fromIntList(list: List<Int>?): String = list?.joinToString(",") ?: ""

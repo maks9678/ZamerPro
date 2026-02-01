@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Relation
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import com.example.zamerpro.materials.MaterialType
 import com.example.zamerpro.materials.MaterialsViewModel
 import kotlinx.android.parcel.Parcelize
 import java.util.UUID
@@ -27,7 +28,7 @@ data class Material(
     @PrimaryKey (autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val unit: MaterialsViewModel.MaterialType,
+    val unit: MaterialType,
     val intake:Int,
 )
 

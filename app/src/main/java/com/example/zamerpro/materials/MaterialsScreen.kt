@@ -1,9 +1,9 @@
 package com.example.zamerpro.materials
 
 import android.app.Application
-import android.util.Log
+import android.content.res.Resources
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -45,6 +46,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,9 +58,10 @@ import androidx.navigation.NavController
 import com.example.zamerpro.Class.House
 import com.example.zamerpro.Dao.AppDatabase
 import com.example.zamerpro.Class.Material
-import com.example.zamerpro.materials.MaterialsViewModel.MaterialType
 
 const val MATERIAL_SCREEN_ROUTE = "materialScreen"
+
+enum class MaterialDialogMode { ADD, EDIT }
 
 
 @Composable
@@ -76,22 +80,22 @@ fun MaterialsScreen(
     val allMaterials by materialsViewModel.famousMaterials.collectAsState()
     if (_houseState != null) {
         MaterialsScreenIternal(
-            _houseState.name,
             _houseState,
+            materialsViewModel.editorState,
             materialsList,
-            materialsViewModel::addNewMaterial,
-            materialsViewModel::editNewMaterial,
-            materialsViewModel::removeMaterialFromHouse,
-            materialsViewModel::calculation,
-            materialsViewModel.newMaterialName,
-            materialsViewModel.newMaterialIntake,
-            materialsViewModel.newMaterialUnit,
-            materialsViewModel::onNewMaterialName,
-            materialsViewModel::onNewMaterialIntake,
-            materialsViewModel::onNewMaterialUnit,
             allMaterials,
-            materialsViewModel::addMaterialToHouse
-        )
+            materialsViewModel::updateName,
+            materialsViewModel::updateIntake,
+            materialsViewModel::updateUnit,
+            materialsViewModel::startAddMaterial,
+            materialsViewModel::startEditMaterial,
+            materialsViewModel::clearEditor,
+            materialsViewModel::saveMaterial,
+            materialsViewModel::removeMaterialFromHouse,
+            materialsViewModel::addMaterialToHouse,
+            materialsViewModel::calculation,
+
+            )
     }
 }
 
@@ -99,8 +103,13 @@ fun MaterialsScreen(
 @Composable
 fun PreviewMaterialsScreen() {
     MaterialsScreenIternal(
-        "Дом",
         House(name = "fdg"),
+        MaterialEditorState(2, "fsdg", 2, MaterialType.AREA),
+        listOf
+            (
+            Material(2, "fsdg", MaterialType.AREA, 12),
+            Material(3, "fsdfdg", MaterialType.AREA, 112)
+        ),
         listOf
             (
             Material(2, "fsdg", MaterialType.AREA, 12),
@@ -109,16 +118,13 @@ fun PreviewMaterialsScreen() {
         {},
         {},
         {},
-        { 0 },
-        "dsfds",
-        33,
-        MaterialType.AREA,
         {},
         {},
         {},
-        emptyList(),
-
-        {}
+        {},
+        {},
+        {},
+        { 10 }
     )
 }
 
@@ -139,24 +145,24 @@ fun PreviewMaterialsItem() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MaterialsScreenIternal(
-    houseName: String,
     house: House,
+    editorState: MaterialEditorState,
     calculatedMaterials: List<Material>,
-    onAddMaterialClick: () -> Unit,
-    onEditMaterialClick: (Material) -> Unit,
-    onRemoveMaterialFromHouse: (Int) -> Unit,
-    calculated: (Material) -> Int,
-    newMaterialName: String,
-    newMaterialIntake: Int,
-    newMaterialUnit: MaterialType,
-    onNewMaterialName: (String) -> Unit,
-    onNewMaterialIntake: (Int) -> Unit,
-    onNewMaterialUnit: (MaterialType) -> Unit,
     allMaterials: List<Material>,
-    onAddMaterialHouseClick: (Int) -> Unit,
+    updateName: (String) -> Unit,
+    updateIntake: (Int) -> Unit,
+    updateUnit: (MaterialType) -> Unit,
+    startAddMaterial: () -> Unit,
+    startEditMaterial: (Material) -> Unit,
+    clearEditor: () -> Unit,
+    saveMaterial: () -> Unit,
+    removeMaterial: (Int) -> Unit,
+    addMaterialToHouse: (Int) -> Unit,
+    calculated: (Material) -> Int,
 
     ) {
-    var showAddDialog by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogMode by remember { mutableStateOf(MaterialDialogMode.ADD) }
 
     Scaffold(
         bottomBar = {
@@ -165,7 +171,11 @@ fun MaterialsScreenIternal(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(8.dp),
-                    onClick = { showAddDialog = true }) {
+                    onClick = {
+                        dialogMode = MaterialDialogMode.ADD
+                        startAddMaterial()
+                        showDialog = true
+                    }) {
                     Icon(
                         Icons.Filled.Add,
                         contentDescription = "Добавить материал",
@@ -183,9 +193,8 @@ fun MaterialsScreenIternal(
         ) {
 
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color = MaterialTheme.colorScheme.background),
+                modifier = Modifier.padding(horizontal = 8.dp).clip(RoundedCornerShape(10.dp)).fillMaxWidth()
+                    .background(color =MaterialTheme.colorScheme.surfaceVariant),
                 contentPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -193,12 +202,18 @@ fun MaterialsScreenIternal(
                 stickyHeader {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth().padding(horizontal = 8.dp),
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            ,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Название", modifier = Modifier.weight(1f))
-                        Text("Расход", modifier = Modifier.weight(1f))
-                        Text("Кол-во", modifier = Modifier.weight(1f))
+                        Text("Название", modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
+                            style = MaterialTheme.typography.titleMedium)
+                        Text("Расход", modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
+                            style = MaterialTheme.typography.titleMedium)
+                        Text("Кол-во", modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
+                            style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.width(100.dp))
                     }
                 }
@@ -210,36 +225,47 @@ fun MaterialsScreenIternal(
                             modifier = Modifier,
                             totalMaterial = calculated,
                             onEditMaterialClick = {
-                                showAddDialog = true
-                                onEditMaterialClick(material)
+                                dialogMode = MaterialDialogMode.EDIT
+                                startEditMaterial(material)
+                                showDialog = true
                             },
-                            { onRemoveMaterialFromHouse(material.id) },
+                            { removeMaterial(material.id) },
                         )
                     }
                 }
             }
         }
-        if (showAddDialog) {
+
+        if (showDialog) {
             AlertDialog(
-                onDismissRequest = { showAddDialog = false },
-                title = { Text("Добавить материал") },
+                onDismissRequest = { showDialog = false },
+                title = {
+                    Text(
+                        if (dialogMode == MaterialDialogMode.ADD)
+                            "Добавить материал"
+                        else
+                            "Редактировать материал",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                },
                 text = {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedTextField(
-                            value = newMaterialName,
-                            onValueChange = { onNewMaterialName(it) },
-                            label = { Text("Название материала") },
+                            value = editorState.name,
+                            onValueChange = {
+                                updateName(it)
+                            },
+                            label = { Text("Название") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                         OutlinedTextField(
-                            value = if (newMaterialIntake == 0) "" else newMaterialIntake.toString(),
-                            onValueChange = { input ->
-                                val number = input.toIntOrNull() ?: 0
-                                onNewMaterialIntake(number)
+                            value = editorState.intake.takeIf { it > 0 }?.toString() ?: "",
+                            onValueChange = {
+                                updateIntake(it.toIntOrNull() ?: 0)
                             },
                             label = { Text("расход на 1 кв/м ") },
                             modifier = Modifier.fillMaxWidth(),
@@ -251,35 +277,35 @@ fun MaterialsScreenIternal(
 
                         ) {
                             SegmentedButton(
-                                selected = newMaterialUnit == MaterialType.AREA,
+                                selected = editorState.unit == MaterialType.AREA,
                                 onClick = {
-                                    onNewMaterialUnit(MaterialType.AREA)
+                                    updateUnit(MaterialType.AREA)
                                 },
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(end = 8.dp),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text("на квадратуру")
+                                Text("м²")
                             }
                             SegmentedButton(
-                                selected = newMaterialUnit == MaterialType.METRE,
+                                selected = editorState.unit == MaterialType.METRE,
                                 onClick = {
-                                    onNewMaterialUnit(MaterialType.METRE)
+                                    updateUnit(MaterialType.METRE)
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text("на метраж")
+                                Text("метр")
                             }
                         }
 
                         Text(
                             text = "Количество: ${
-                                if (newMaterialUnit == MaterialType.AREA) house.totalWallArea
+                                if (editorState.unit == MaterialType.AREA) house.totalWallArea
                                 else house.totalWindowMetre
-                            } ${if (newMaterialUnit == MaterialType.AREA) "м²" else "м"}",
-                            style = MaterialTheme.typography.bodySmall
+                            } ${if (editorState.unit == MaterialType.AREA) "м²" else "м"}",
+                            style = MaterialTheme.typography.labelMedium
                         )
 
                         LazyVerticalGrid(
@@ -288,12 +314,12 @@ fun MaterialsScreenIternal(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            val listMaterial: List<Material> = allMaterials.filter{
-                                material->
-                                material.id !in house.listMaterial
-                            }
+                            val listMaterial: List<Material> =
+                                allMaterials.filter { material ->
+                                    material.id !in house.listMaterial
+                                }
                             items(listMaterial) { item ->
-                                Button(onClick = { onAddMaterialHouseClick(item.id) }) {
+                                Button(onClick = { addMaterialToHouse(item.id) }) {
                                     Text(text = item.name)
                                 }
                             }
@@ -302,19 +328,21 @@ fun MaterialsScreenIternal(
                 },
                 confirmButton = {
                     Button(
+                        enabled = editorState.name.isNotBlank() && editorState.intake > 0,
                         onClick = {
-                            if (newMaterialName.isNotBlank() && newMaterialIntake > 0) {
-                                onAddMaterialClick()
-                                Log.i("MaterialScreen", "+")
-                                showAddDialog = false
-                            }
+                            saveMaterial()
+                            showDialog = false
+                            clearEditor()
                         }
                     ) {
-                        Text("Добавить")
+                        Text(if (dialogMode == MaterialDialogMode.ADD) "Добавить" else "Сохранить")
                     }
                 },
                 dismissButton = {
-                    Button(onClick = { showAddDialog = false }) {
+                    Button(onClick = {
+                        clearEditor()
+                        showDialog = false
+                    }) {
                         Text("Отмена")
                     }
                 }
@@ -322,7 +350,6 @@ fun MaterialsScreenIternal(
         }
     }
 }
-
 
 @Composable
 fun MaterialItem(
@@ -333,15 +360,26 @@ fun MaterialItem(
     onRemoveMaterial: (Material) -> Unit,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(8.dp),
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .border(2.dp,MaterialTheme.colorScheme.onPrimaryFixed,
+                RoundedCornerShape(10.dp)),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(modifier = Modifier.weight(1f),text = material.name, style = MaterialTheme.typography.bodyLarge)
-        Text(modifier = Modifier.weight(1f),text = material.intake.toString(), style = MaterialTheme.typography.bodyLarge)
-        Text(modifier = Modifier.weight(1f),
+        Text(
+            modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
+            text = material.name,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
+            text = material.intake.toString(),
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
             text = totalMaterial(material).toString(),
             style = MaterialTheme.typography.bodyLarge
         )

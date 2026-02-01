@@ -12,12 +12,23 @@ import com.example.zamerpro.Class.House
 import com.example.zamerpro.Class.Material
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
+enum class MaterialType {
+    AREA, // Квадратура
+    METRE  // Метраж
+}
+data class MaterialEditorState(
+    val id: Int? = null,          // null → ADD, not null → EDIT
+    val name: String = "",
+    val intake: Int = 0,
+    val unit: MaterialType = MaterialType.AREA,
+) {
+    val isValid: Boolean
+        get() = name.isNotBlank() && intake > 0
+}
 class MaterialsViewModel(
     val houseId: String,
     private val materialsDao: MaterialsDao,
@@ -30,10 +41,8 @@ class MaterialsViewModel(
         null
     )
     val currentHouse = _currentHouse
-
     private val _houseMaterials: StateFlow<List<Material>> =
-        currentHouse.filterNotNull().flatMapLatest{
-            house->
+        currentHouse.filterNotNull().flatMapLatest { house ->
             materialsDao.getMaterialsByIds(house.listMaterial)
         }.stateIn(
             viewModelScope,
@@ -48,51 +57,60 @@ class MaterialsViewModel(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000), emptyList()
         )
-    val famousMaterials = _famousMaterials
+    val famousMaterials = _famousMaterials // известные материалы
 
-    // UI State для полей ввода
-    var newMaterialName by mutableStateOf("")
+    var editorState by mutableStateOf(MaterialEditorState())
         private set
-
-    fun onNewMaterialName(newName: String) {
-        newMaterialName = newName
+    fun updateName(name: String) {
+        editorState = editorState.copy(name = name)
     }
 
-    var newMaterialIntake by mutableStateOf(0)
-        private set
-
-    fun onNewMaterialIntake(newIntake: Int) {
-        newMaterialIntake = newIntake
+    fun updateIntake(intake: Int) {
+        editorState = editorState.copy(intake = intake)
     }
 
-    var newMaterialUnit by mutableStateOf<MaterialType>(MaterialType.AREA)
-        private set
-
-    fun onNewMaterialUnit(newUnit: MaterialType) {
-        newMaterialUnit = newUnit
+    fun updateUnit(unit: MaterialType) {
+        editorState = editorState.copy(unit = unit)
     }
 
-    enum class MaterialType {
-        AREA, // Квадратура
-        METRE  // Метраж
+    fun startAddMaterial() {
+        editorState = MaterialEditorState()
     }
 
-    fun addNewMaterial() {
-        Log.i("MaterialViewModel", "+")
-        if (newMaterialName.isNotBlank()) {
-            val material = Material(
-                name = newMaterialName,
-                intake = newMaterialIntake,
-                unit = newMaterialUnit,
-            )
+    fun startEditMaterial(material: Material) {
+        editorState = MaterialEditorState(
+            id = material.id,
+            name = material.name,
+            intake = material.intake,
+            unit = material.unit
+        )
+    }
+    fun clearEditor() {
+        editorState = MaterialEditorState()
+    }
+    fun saveMaterial() {
+        if (!editorState.isValid) return
 
-            viewModelScope.launch {
-                val idMaterial = materialsDao.insert(material)
-                addMaterialToHouse(idMaterial.toInt())
+        viewModelScope.launch {
+            if (editorState.id == null) {
+                val id = materialsDao.insert(
+                    Material(
+                        name = editorState.name,
+                        intake = editorState.intake,
+                        unit = editorState.unit
+                    )
+                )
+                addMaterialToHouse(id.toInt())
+            } else {
+                materialsDao.update(
+                    Material(
+                        id = editorState.id!!,
+                        name = editorState.name,
+                        intake = editorState.intake,
+                        unit = editorState.unit
+                    )
+                )
             }
-            newMaterialName = ""
-            newMaterialIntake = 0
-            newMaterialUnit = MaterialType.AREA
         }
     }
 
@@ -117,18 +135,13 @@ class MaterialsViewModel(
         } else 0
     }
 
-    fun editNewMaterial(material: Material) {
-        viewModelScope.launch {
-            materialsDao.update(material)
-        }
-    }
-
     fun removeMaterial(material: Material) {
         viewModelScope.launch {
             materialsDao.delete(material)
         }
         removeMaterialFromHouse(material.id)
     }
+
     fun removeMaterialFromHouse(materialId: Int) {
         val house = currentHouse.value ?: return
         val updatedList = house.listMaterial.toMutableList().apply { remove(materialId) }

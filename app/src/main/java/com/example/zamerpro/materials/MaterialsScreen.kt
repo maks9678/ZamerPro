@@ -1,7 +1,6 @@
 package com.example.zamerpro.materials
 
 import android.app.Application
-import android.content.res.Resources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -47,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -61,7 +59,7 @@ import com.example.zamerpro.Class.Material
 
 const val MATERIAL_SCREEN_ROUTE = "materialScreen"
 
-enum class MaterialDialogMode { ADD, EDIT }
+enum class DialogMode { ADD, EDIT }
 
 
 @Composable
@@ -162,7 +160,7 @@ fun MaterialsScreenIternal(
 
     ) {
     var showDialog by remember { mutableStateOf(false) }
-    var dialogMode by remember { mutableStateOf(MaterialDialogMode.ADD) }
+    var dialogMode by remember { mutableStateOf(DialogMode.ADD) }
 
     Scaffold(
         bottomBar = {
@@ -172,7 +170,7 @@ fun MaterialsScreenIternal(
                         .align(Alignment.BottomEnd)
                         .padding(8.dp),
                     onClick = {
-                        dialogMode = MaterialDialogMode.ADD
+                        dialogMode = DialogMode.ADD
                         startAddMaterial()
                         showDialog = true
                     }) {
@@ -225,7 +223,7 @@ fun MaterialsScreenIternal(
                             modifier = Modifier,
                             totalMaterial = calculated,
                             onEditMaterialClick = {
-                                dialogMode = MaterialDialogMode.EDIT
+                                dialogMode = DialogMode.EDIT
                                 startEditMaterial(material)
                                 showDialog = true
                             },
@@ -241,7 +239,7 @@ fun MaterialsScreenIternal(
                 onDismissRequest = { showDialog = false },
                 title = {
                     Text(
-                        if (dialogMode == MaterialDialogMode.ADD)
+                        if (dialogMode == DialogMode.ADD)
                             "Добавить материал"
                         else
                             "Редактировать материал",
@@ -335,7 +333,7 @@ fun MaterialsScreenIternal(
                             clearEditor()
                         }
                     ) {
-                        Text(if (dialogMode == MaterialDialogMode.ADD) "Добавить" else "Сохранить")
+                        Text(if (dialogMode == DialogMode.ADD) "Добавить" else "Сохранить")
                     }
                 },
                 dismissButton = {

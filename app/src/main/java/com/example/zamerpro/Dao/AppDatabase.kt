@@ -11,13 +11,12 @@ import com.example.zamerpro.Class.Opening
 import com.example.zamerpro.Class.Room
 import com.example.zamerpro.Class.Work
 
-@Database(entities = [House::class, Room::class, Opening::class, Material::class, Work::class], version = 18, exportSchema = false)
+@Database(entities = [House::class, Room::class, Opening::class, Material::class, Work::class], version = 19, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun houseDao(): HomeDao
     abstract fun roomDao(): RoomDao
     abstract fun materialsDao(): MaterialsDao
-
     abstract fun workDao(): WorkDao
 
     companion object {

@@ -56,10 +56,11 @@ import androidx.navigation.compose.rememberNavController
 import com.example.zamerpro.Class.House
 import com.example.zamerpro.Class.Work
 import com.example.zamerpro.home.previewHouse
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.example.zamerpro.materials.DialogMode
 
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
+enum class PriseDialogMode { ADD, EDIT }
 enum class Multiplicand(val displayName: String) {
     SQUARE("квадратура"),
     METRE("метраж"),
@@ -77,25 +78,23 @@ fun PriceScreen(
         factory = PriceViewModel.PriceViewModelFactory(application, houseId)
     )
     val currentHouse by viewModel.currentHouse.collectAsState()
-    val listCost by viewModel.listCost.collectAsState()
-    val sumListWork by viewModel.sumListWork.collectAsState()
-    val listWork by viewModel.listWork.collectAsState()
-    val listAvailableWorks by viewModel.listAvailableWorks.collectAsState()
+    val listWorkInHouse by viewModel.listWorksInHouse.collectAsState()
+    val sumListWork by viewModel.sumListWorkInHouse.collectAsState()
+    val listAllWork by viewModel.listAllWorks.collectAsState()
 
-    PriceScreenInternal(
-        navController,
-        currentHouse,
-        listCost,
-        viewModel::addCost,
-        viewModel::totalCost,
-        viewModel::addListSumWork,
-        sumListWork,
-        addWork = {viewModel::addWork} ,
-        listWork,
-        listAvailableWorks,
-        addWorkHouse = viewModel::addWorkHouse
-    )
-
+    currentHouse?.let {
+        PriceScreenInternal(
+            it,
+            listAllWork,
+            listWorkInHouse,
+            sumListWork,
+            viewModel::updateWork,
+            viewModel::startEditPrice,
+            viewModel::startAddWork,
+            viewModel::clearEditor,
+            viewModel::saveWork,
+        )
+    }
 }
 
 
@@ -111,13 +110,13 @@ fun Preview() {
             CostItem("пельмени", 123),
             CostItem("дрова", 241)
         ),
+        12,
+        emptyList(),
+        emptyList(),
         { _, _ -> 0 },
         { 12 },
         {},
-        12,
         { },
-        emptyList(),
-        emptyList(),
         {}
     )
 }
@@ -125,17 +124,16 @@ fun Preview() {
 @ExperimentalMaterial3Api
 @Composable
 fun PriceScreenInternal(
-    navController: NavController,
-    currentHouse: House?,
-    onListCost: List<CostItem>,
-    onAddCost: (String, Int) -> Unit,
-    onTotalCost: () -> Int,
-    onAddSum: (Int) -> Unit,
-    sumListWork: Int,
-    addWork: (Work) -> Unit,
-    listWork: List<Work>,
-    listAvailableWorks:List<Work>,
-    addWorkHouse: (Int) -> Unit
+    currentHouse: House,
+    listAllWork: List<Work>,
+    listWorksInHouse: List<Work>,
+    sumListWorkInHouse: Int,
+    updateWork: (Work) -> Unit,
+    startEditPrice: (Work) -> Unit,
+    startAddWork: () -> Unit,
+    clearEditor: () -> Unit,
+    saveWork: () -> Unit,
+    calculation: (Work) -> Int,
 ) {
     var isShowAddWork by remember { mutableStateOf(false) }
     Scaffold { paddingValues ->
@@ -150,23 +148,20 @@ fun PriceScreenInternal(
         ) {
             item {
                 Text("Виды работ:")
-                currentHouse?.let {
-                    listWork.forEach { work ->
-                        PointWorkItem(work, onAddSum, it)
-                    }
-                    Button(
-                        modifier = Modifier,
-                        onClick = { isShowAddWork = true }) {
-                        Text(text = "Добавить работу")
-                    }
 
-
-                    Text(text = "Сумма по работам : ${sumListWork}")
+                listWorksInHouse.forEach { work ->
+                    PointWorkItem(work, calculation)
                 }
+                Button(
+                    modifier = Modifier,
+                    onClick = { isShowAddWork = true }) {
+                    Text(text = "Добавить работу")
+                }
+                Text(text = "Сумма по работам : ${sumListWorkInHouse}")
             }
 
             item {
-                Cost(
+                Check(
                     onListCost,
                     onAddCost,
                     onTotalCost
@@ -177,7 +172,13 @@ fun PriceScreenInternal(
             }
         }
         if (isShowAddWork) {
-            AddWorkDialog(listAvailableWorks,{},{}, addWork)
+            AddWorkDialog(
+                listAvailableWorks,
+                {},
+                { isShowAddWork = false },
+                {
+
+                })
         }
     }
 }
@@ -185,15 +186,15 @@ fun PriceScreenInternal(
 @Preview(showBackground = true)
 @Composable
 fun PreviewAddWorkDialog() {
-    AddWorkDialog(emptyList(),{},{}, {})
+    AddWorkDialog(emptyList(), {}, {}, {})
 }
 
 @Composable
 fun AddWorkDialog(
     listAvailableWorks: List<Work>,
     addWorkHouse: (Work) -> Unit,
-    onDismiss: () -> Unit,
-    onConfirm: (work: Work) -> Unit
+    addWork: (Work) -> Unit,
+    dialogMode: DialogMode,
 ) {
     var workName by remember { mutableStateOf("") }
     var priceWork by remember { mutableStateOf("") }
@@ -240,7 +241,9 @@ fun AddWorkDialog(
                     contentPadding = PaddingValues(8.dp),
                 ) {
                     items(listAvailableWorks) { item ->
-                        Button(modifier = Modifier.fillMaxWidth(), onClick = {addWorkHouse(item)}) {
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { addWorkHouse(item) }) {
                             Text("${item.name}")
                         }
                     }
@@ -283,11 +286,10 @@ fun PreviewPointWorkItem() {
 @Composable
 fun PointWorkItem(
     work: Work,
-    onAddSum: (Int) -> Unit,
     house: House,
+    calculation: (Work) -> Int,
     modifier: Modifier = Modifier,
 ) {
-    var priceWorkText by remember { mutableStateOf(work.priceWork.toString()) }
 
     Card(
         modifier = Modifier
@@ -306,40 +308,19 @@ fun PointWorkItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = priceWorkText,
-                    onValueChange = { input ->
-                        if (input.all { it.isDigit() }) {
-                            priceWorkText = input
-                        }
-                    },
-                    label = { Text("Цена") },
-                    modifier = Modifier
-                        .width(70.dp)
-                        .height(60.dp), // стандартная высота TextField
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-
-                val priceWork = priceWorkText.toIntOrNull() ?: 0
-                val multiplicandTwo =
-                    if (work.areaMetreCustom == Multiplicand.METRE) {
-                        house.totalWindowMetre
-                    } else if (work.areaMetreCustom == Multiplicand.SQUARE) {
-                        house.totalWallArea
-                    } else work.customMultiplicand
-
-                val sum = multiplicandTwo * priceWork
-                Text(text = " р =")
-                Text(text = "$sum р")
-                onAddSum(sum)
+                val textAreaMetreCustom=when (work.areaMetreCustom) {
+                    Multiplicand.METRE -> house.totalWindowMetre
+                    Multiplicand.SQUARE -> house.totalWallArea
+                    else -> work.customMultiplicand
+                }
+                Text(text = "${work.priceWork} р * $textAreaMetreCustom = ${calculation(work)} р")
             }
         }
     }
 }
 
 @Composable
-fun Cost(
+fun Check(
     listCost: List<CostItem>,
     onAddCost: (String, Int) -> Unit,
     onTotalCost: () -> Int,

@@ -38,19 +38,6 @@ enum class Measurement(val displayName: String, val shortForm: String) {
 }
 
 @Entity(tableName = "material")
-
-@Entity(
-    tableName = "materials",
-    foreignKeys = [
-        ForeignKey(
-            entity = House::class,
-            parentColumns = ["id"],
-            childColumns = ["houseId"],
-            onDelete = ForeignKey.CASCADE // Если удалить дом, все его материалы тоже удалятся
-        )
-    ]
-)
-
 data class Material(
     @PrimaryKey (autoGenerate = true)
     val id: Int = 0,
@@ -159,11 +146,5 @@ class Converters {
     fun toIntList(value: String): List<Int> =
         if (value.isEmpty()) emptyList() else value.split(",").map { it.toInt() }
 
-    @TypeConverter
-    fun fromIntList(list: List<Int>?): String = list?.joinToString(",") ?: ""
-
-    @TypeConverter
-    fun toIntList(data: String): List<Int> =
-        if (data.isEmpty()) emptyList() else data.split(",").map { it.toInt() }
 
 }

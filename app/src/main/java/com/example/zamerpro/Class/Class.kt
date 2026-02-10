@@ -12,8 +12,18 @@ import androidx.room.TypeConverters
 import com.example.zamerpro.Price.Multiplicand
 import com.example.zamerpro.materials.MaterialType
 import com.example.zamerpro.materials.MaterialsViewModel
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.android.parcel.Parcelize
 import java.util.UUID
+
+data class Supplies(        //расходники
+    @PrimaryKey(autoGenerate = true)
+    val id : Int = 0,
+    val name:String,
+    val price:Int,
+)
+
 
 @TypeConverters(Converters::class)
 @Entity(
@@ -78,6 +88,7 @@ data class ItemDimension(
     var height: String = ""
 ) : Parcelable
 
+@TypeConverters(Converters::class)
 @Entity(tableName = "houses")
 data class House(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
@@ -86,8 +97,9 @@ data class House(
     val totalWallArea: Int = 0,
     val totalWindowMetre: Int = 0,
     val totalQuantityWindows: Int = 0,
-    val listMaterial:List<Int> = emptyList<Int>(),
+    val listMaterial:List<Int> = emptyList(),
     val listWork: List<Int> = emptyList(),
+    val listSupplies:List<Supplies> = emptyList(),
 )
 
 data class HouseWithRooms(
@@ -130,6 +142,7 @@ data class RoomWithObjects(
 )
 
 class Converters {
+    private val gson = Gson()
     @TypeConverter
     fun fromString(value: String?): List<Double> {
         return value?.split(',')?.mapNotNull { it.toDoubleOrNull() } ?: emptyList()
@@ -145,6 +158,16 @@ class Converters {
     @TypeConverter
     fun toIntList(value: String): List<Int> =
         if (value.isEmpty()) emptyList() else value.split(",").map { it.toInt() }
+    @TypeConverter
+    fun fromSuppliesList(value: List<Supplies>?): String? {
+        return if (value == null) null else gson.toJson(value)
+    }
 
+    @TypeConverter
+    fun toSuppliesList(value: String?): List<Supplies>? {
+        if (value == null) return null
+        val type = object : TypeToken<List<Supplies>>() {}.type
+        return gson.fromJson(value, type)
+    }
 
 }

@@ -23,6 +23,6 @@ interface WorkDao {
     @Delete
     suspend fun deleteWork(work:Work)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertWork(work: Work)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertWork(work: Work):Long
 }

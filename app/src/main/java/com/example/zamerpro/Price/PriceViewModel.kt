@@ -1,13 +1,14 @@
 package com.example.zamerpro.Price
 
 import android.app.Application
-import androidx.compose.runtime.getValue
+import android.util.Log
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.zamerpro.Class.House
+import com.example.zamerpro.Class.Supplies
 import com.example.zamerpro.Class.Work
 import com.example.zamerpro.Dao.AppDatabase
 import com.example.zamerpro.Dao.HomeDao
@@ -22,7 +23,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class PriceEditorState(
-    val idHouse: String = "",
+    val idWork: Int? = null,
     val name: String = "",
     val priceWork: Int = 0,
     val areaMetreCustom: Multiplicand = Multiplicand.SQUARE,
@@ -52,56 +53,100 @@ class PriceViewModel(
         listAllWorks,
         currentHouse.filterNotNull()
     ) { works, house ->
+        Log.d("Debug", "works=${works.size}; houseWork=${house.listWork.size}")
         works.filter { it.idWork in house.listWork }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val sumListWorkInHouse: StateFlow<Int> = listWorksInHouse
-        .map { list -> list.sumOf { calculation(it) } } // map Flow<List<Work>> -> Flow<Double>
+        .map { list -> list.sumOf { calculation(it) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-    var editorState by mutableStateOf(PriceEditorState())
-        private set
-
-    fun updateWork(work: Work) {
+    private val _editorState = mutableStateOf(PriceEditorState())
+    val editorState: State<PriceEditorState> get() = _editorState
+    fun deleteSupplies(supplies: Supplies) {
+        val house = currentHouse.value ?: return
         viewModelScope.launch {
-            workDao.updateWork(work)
+            val newHouse = house.copy(
+                listSupplies = house.listSupplies.filter { it.id != supplies.id })
+            houseDao.updateHouse(newHouse)
+
         }
     }
-        fun startAddWork() {
-            editorState = PriceEditorState()
-        }
 
-        fun startEditPrice(work: Work) {
-            editorState = PriceEditorState(
-                idHouse = work.idWork.toString(),
-                name = work.name,
-                areaMetreCustom = work.areaMetreCustom,
-                customMultiplicand = work.customMultiplicand,
-            )
+    fun deleteWork(work: Work) {
+        viewModelScope.launch {
+            workDao.deleteWork(work)
         }
+    }
 
+    fun addSupplies(supplies: Supplies) {
+        val house = currentHouse.value ?: return
+        val updateList = house.listSupplies.orEmpty() + supplies
+        val updateHouse = house.copy(listSupplies = updateList)
+        viewModelScope.launch {
+            houseDao.updateHouse(updateHouse)
+        }
+    }
+
+    fun startEditPrice(work: Work) {
+        _editorState.value = _editorState.value.copy(
+            idWork = work.idWork,
+            name = work.name,
+            priceWork = work.priceWork,
+            areaMetreCustom = work.areaMetreCustom,
+            customMultiplicand = work.customMultiplicand,
+        )
+    }
+
+    fun updateTextWork(text: String) {
+        _editorState.value = _editorState.value.copy(name = text)
+    }
+
+    fun updatePriceWork(price: Int) {
+        _editorState.value = _editorState.value.copy(priceWork = price)
+    }
+
+    fun updateMultiplicandWork(type: Multiplicand) {
+        _editorState.value = _editorState.value.copy(areaMetreCustom = type)
+    }
+
+    fun updateCustomWork(number: Int) {
+        _editorState.value = _editorState.value.copy(customMultiplicand = number)
+    }
 
     fun clearEditor() {
-        editorState = PriceEditorState()
+        _editorState.value = PriceEditorState()
     }
 
     fun saveWork() {
         viewModelScope.launch {
-            if (editorState.idHouse == "") {
+            val idWork = _editorState.value.idWork
+            if (idWork == null) {
                 val id = workDao.insertWork(
-                    Work(
-                        name = editorState.name,
-                        areaMetreCustom = editorState.areaMetreCustom,
-                        customMultiplicand = editorState.customMultiplicand,
-                    )
+                    if (_editorState.value.areaMetreCustom == Multiplicand.CUSTOM) {
+                        Work(
+                            name = _editorState.value.name,
+                            priceWork = _editorState.value.priceWork,
+                            areaMetreCustom = _editorState.value.areaMetreCustom,
+                            customMultiplicand = _editorState.value.customMultiplicand.toInt(),
+                        )
+                    } else {
+                        Work(
+                            name = _editorState.value.name,
+                            priceWork = _editorState.value.priceWork,
+                            areaMetreCustom = _editorState.value.areaMetreCustom,
+                        )
+                    }
                 )
-                addWorkToHouse(idHouse.toInt())
+                Log.i("PriceHouse", "создана работа")
+                addWorkToHouse(id.toInt())
             } else {
                 workDao.updateWork(
                     Work(
-                        idWork = editorState.idHouse.toInt(),
-                        name = editorState.name,
-                        areaMetreCustom = editorState.areaMetreCustom,
-                        customMultiplicand = editorState.customMultiplicand,
+                        idWork= idWork,
+                        name = _editorState.value.name,
+                        priceWork = _editorState.value.priceWork,
+                        areaMetreCustom = _editorState.value.areaMetreCustom,
+                        customMultiplicand = _editorState.value.customMultiplicand,
                     )
                 )
             }
@@ -114,15 +159,16 @@ class PriceViewModel(
             currentHouse.value?.let { house ->
                 val updatedList = house.listMaterial.toMutableList()
                 updatedList.add(idWork)
-
-                val updatedHouse = house.copy(listMaterial = updatedList)
+                Log.i("PriceHouse", "добавлена работа с id $idWork")
+                val updatedHouse = house.copy(listMaterial = updatedList.toList())
                 houseDao.updateHouse(updatedHouse)
             }
         }
+        Log.i("PriceHouse", "добавлена работа с id $idWork")
     }
 
     fun calculation(work: Work): Int {
-        val house = currentHouse.value
+        val house = _currentHouse.value
         return if (house != null) {
             when (work.areaMetreCustom) {
                 Multiplicand.METRE -> work.priceWork * house.totalWindowMetre

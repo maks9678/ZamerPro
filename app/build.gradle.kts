@@ -44,6 +44,7 @@ android {
 }
 
 dependencies {
+    implementation("com.google.code.gson:gson:2.9.1")
     implementation("net.objecthunter:exp4j:0.4.8")
     implementation("androidx.compose.material:material-icons-extended-android:1.6.7")
     implementation(libs.core.ktx)

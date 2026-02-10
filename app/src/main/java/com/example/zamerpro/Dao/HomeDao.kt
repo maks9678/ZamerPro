@@ -10,6 +10,7 @@ import androidx.room.Transaction
 import androidx.room.Update
 import com.example.zamerpro.Class.House
 import com.example.zamerpro.Class.HouseWithRooms
+import com.example.zamerpro.Class.Supplies
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -35,7 +36,6 @@ interface HomeDao {
     @Query("SELECT * FROM houses WHERE name LIKE '%' || :query || '%' ORDER BY lastModified DESC")
     fun searchHousesByName(query: String): Flow<List<House>>
 
-    // --- НОВЫЙ МЕТОД, КОТОРЫЙ НУЖНО ДОБАВИТЬ ---
 
     /**
      * Получает дом и все связанные с ним комнаты одним запросом.

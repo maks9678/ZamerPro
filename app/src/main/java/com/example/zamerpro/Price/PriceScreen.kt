@@ -1,6 +1,7 @@
 package com.example.zamerpro.Price
 
 import android.app.Application
+import android.widget.ImageButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -54,13 +55,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.zamerpro.Class.House
+import com.example.zamerpro.Class.Supplies
 import com.example.zamerpro.Class.Work
 import com.example.zamerpro.home.previewHouse
 import com.example.zamerpro.materials.DialogMode
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
-enum class PriseDialogMode { ADD, EDIT }
 enum class Multiplicand(val displayName: String) {
     SQUARE("квадратура"),
     METRE("метраж"),
@@ -81,18 +87,27 @@ fun PriceScreen(
     val listWorkInHouse by viewModel.listWorksInHouse.collectAsState()
     val sumListWork by viewModel.sumListWorkInHouse.collectAsState()
     val listAllWork by viewModel.listAllWorks.collectAsState()
+    val editorState by viewModel.editorState
 
     currentHouse?.let {
-        PriceScreenInternal(
+        WorkScreenInternal(
             it,
+            editorState,
             listAllWork,
             listWorkInHouse,
             sumListWork,
-            viewModel::updateWork,
+            viewModel::addSupplies,
+            viewModel::deleteSupplies,
+            viewModel::deleteWork,
             viewModel::startEditPrice,
-            viewModel::startAddWork,
             viewModel::clearEditor,
             viewModel::saveWork,
+            viewModel::addWorkToHouse,
+            viewModel::calculation,
+            viewModel::updateTextWork,
+            viewModel::updatePriceWork,
+            viewModel::updateMultiplicandWork,
+            viewModel::updateCustomWork,
         )
     }
 }
@@ -102,175 +117,212 @@ fun PriceScreen(
 @Composable
 @Preview(showBackground = true)
 fun Preview() {
-    PriceScreenInternal(
-        rememberNavController(),
+    WorkScreenInternal(
         currentHouse = previewHouse,
-
-        onListCost = listOf(
-            CostItem("пельмени", 123),
-            CostItem("дрова", 241)
-        ),
+        editorState = PriceEditorState(),
+        emptyList(),
+        emptyList(),
         12,
-        emptyList(),
-        emptyList(),
-        { _, _ -> 0 },
+        { },
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
         { 12 },
         {},
-        { },
-        {}
+        {},
+        {},
+        {},
     )
 }
 
 @ExperimentalMaterial3Api
 @Composable
-fun PriceScreenInternal(
+fun WorkScreenInternal(
     currentHouse: House,
+    editorState: PriceEditorState,
     listAllWork: List<Work>,
     listWorksInHouse: List<Work>,
     sumListWorkInHouse: Int,
-    updateWork: (Work) -> Unit,
+    addSupplies: (Supplies) -> Unit,
+    deleteSupplies: (Supplies) -> Unit,
+    deleteWork: (Work) -> Unit,
     startEditPrice: (Work) -> Unit,
-    startAddWork: () -> Unit,
     clearEditor: () -> Unit,
     saveWork: () -> Unit,
+    addWorkToHouse:(Int) -> Unit,
     calculation: (Work) -> Int,
+    updateTextWork: (String) -> Unit,
+    updatePriceWork: (Int) -> Unit,
+    updateMultiplicandWork: (Multiplicand) -> Unit,
+    updateCustomWork: (Int) -> Unit,
 ) {
+
     var isShowAddWork by remember { mutableStateOf(false) }
+    var addEdit by remember { mutableStateOf(DialogMode.ADD) }
+    val sumSupplies = currentHouse.listSupplies.sumOf { it.price }
+
+    @Composable
+    fun WorkDialog(
+    ) {
+
+        AlertDialog(
+            onDismissRequest = {
+                isShowAddWork = false
+                clearEditor()
+            },
+            title = {
+                Text(
+                    if (addEdit == DialogMode.ADD) "Добавить работу"
+                    else "Редактировать работу"
+                )
+            },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = editorState.name,
+                        onValueChange = { newText ->
+                                updateTextWork(newText)
+                        },
+                        label = { Text("Название работы") },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = editorState.priceWork.takeIf{it>0}?.toString() ?:"",
+                        onValueChange = { newText ->
+                                val price = newText.toIntOrNull() ?: 0
+                                updatePriceWork(price)
+                        },
+                        label = { Text("цена кв/м") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    when (editorState.areaMetreCustom) {
+                        Multiplicand.CUSTOM -> {
+                            OutlinedTextField(
+                                value = editorState.customMultiplicand.takeIf{it>0}?.toString() ?:"",
+                                onValueChange = {
+                                    updateCustomWork(it.toIntOrNull() ?: 0)
+                                },
+                                label = { Text("свое число") }
+                            )
+                        }
+
+                        Multiplicand.SQUARE -> {
+                            Text(text = currentHouse.totalWallArea.toString(),
+                                style = MaterialTheme.typography.labelMedium)
+                        }
+
+                        Multiplicand.METRE -> {
+                            Text(currentHouse.totalWindowMetre.toString(),
+                                style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Multiplicand.entries.forEach { option ->
+                            Column(Modifier.clickable { updateMultiplicandWork(option) }) {
+                                RadioButton(
+                                    selected = editorState.areaMetreCustom == option,
+                                    onClick = { updateMultiplicandWork(option) }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text("Доступные работы")
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(8.dp),
+                    ) {
+                        items(listAllWork.filter { it.idWork !in currentHouse.listWork }) { item ->
+                            Button(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { addWorkToHouse(item.idWork) }) {
+                                Text(
+                                    "${item.name}",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = editorState.name.isNotBlank() &&
+                            editorState.priceWork>0,
+                    onClick = {
+                        saveWork()
+                        isShowAddWork = false
+                        clearEditor()
+                    }
+                ) {
+                    Text("ОК")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    isShowAddWork = false
+                    clearEditor() }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
     Scaffold { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
-                .padding(8.dp),
+                .background(MaterialTheme.colorScheme.background),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
                 Text("Виды работ:")
-
-                listWorksInHouse.forEach { work ->
-                    PointWorkItem(work, calculation)
-                }
+            }
+            items(listWorksInHouse) { work ->
+                PointWorkItem(work, currentHouse, calculation, deleteWork)
+            }
+            item {
                 Button(
                     modifier = Modifier,
                     onClick = { isShowAddWork = true }) {
                     Text(text = "Добавить работу")
                 }
                 Text(text = "Сумма по работам : ${sumListWorkInHouse}")
-            }
 
+            }
             item {
                 Check(
-                    onListCost,
-                    onAddCost,
-                    onTotalCost
+                    currentHouse.listSupplies,
+                    addSupplies,
+                    deleteSupplies,
                 )
 
-
-                Text(text = "Итого за объект : ")
+                Text(
+                    "Сумма по расходникам :${sumSupplies} "
+                )
+                Text(text = "Итого за объект :${sumListWorkInHouse + sumSupplies} ")
             }
         }
         if (isShowAddWork) {
-            AddWorkDialog(
-                listAvailableWorks,
-                {},
-                { isShowAddWork = false },
-                {
-
-                })
+            if (addEdit == DialogMode.ADD) {
+            } else {
+                startEditPrice(Work(name = ""))
+            }
+            WorkDialog()
         }
     }
-}
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewAddWorkDialog() {
-    AddWorkDialog(emptyList(), {}, {}, {})
-}
-
-@Composable
-fun AddWorkDialog(
-    listAvailableWorks: List<Work>,
-    addWorkHouse: (Work) -> Unit,
-    addWork: (Work) -> Unit,
-    dialogMode: DialogMode,
-) {
-    var workName by remember { mutableStateOf("") }
-    var priceWork by remember { mutableStateOf("") }
-    var squareMetreCustom by remember { mutableStateOf(Multiplicand.SQUARE) }
-    var customMultiplicand by remember { mutableStateOf<Int?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = "Добавить работу") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = workName,
-                    onValueChange = { workName = it },
-                    label = { Text("Название работы") }
-                )
-                OutlinedTextField(
-                    value = priceWork,
-                    onValueChange = { priceWork = it },
-                    label = { Text("цена кв/м") }
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Multiplicand.entries.forEach { option ->
-                        Column(Modifier.clickable { squareMetreCustom = option }) {
-                            RadioButton(
-                                selected = squareMetreCustom == option,
-                                onClick = { squareMetreCustom = option }
-                            )
-                            Text(option.displayName)
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text("Доступные работы")
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(8.dp),
-                ) {
-                    items(listAvailableWorks) { item ->
-                        Button(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { addWorkHouse(item) }) {
-                            Text("${item.name}")
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val work = Work(
-                        name = workName,
-                        priceWork = priceWork.toInt(),
-                        areaMetreCustom = squareMetreCustom
-                    )
-                    onConfirm(work)
-                    onDismiss()
-                }
-            ) {
-                Text("ОК")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Отмена")
-            }
-        }
-    )
 }
 
 @Composable
@@ -278,8 +330,9 @@ fun AddWorkDialog(
 fun PreviewPointWorkItem() {
     PointWorkItem(
         Work(name = "dsgsd", priceWork = 12, areaMetreCustom = Multiplicand.METRE),
-        {},
-        house = House(name = "adfsas")
+        house = House(name = "adfsas"),
+        { 12 },
+        {}
     )
 }
 
@@ -288,32 +341,38 @@ fun PointWorkItem(
     work: Work,
     house: House,
     calculation: (Work) -> Int,
+    clickDeleteWork: (Work) -> Unit,
     modifier: Modifier = Modifier,
 ) {
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp, 4.dp)
+            .padding(horizontal = 16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp, 8.dp)) {
-            Text(
-                text = work.name,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val textAreaMetreCustom=when (work.areaMetreCustom) {
-                    Multiplicand.METRE -> house.totalWindowMetre
-                    Multiplicand.SQUARE -> house.totalWallArea
-                    else -> work.customMultiplicand
+                Text(
+                    text = work.name,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                val textAreaMetreCustom = when (work.areaMetreCustom) {
+                    Multiplicand.METRE -> "${house.totalWindowMetre} m"
+                    Multiplicand.SQUARE -> "${house.totalWallArea} кв"
+                    else -> "${work.customMultiplicand}"
                 }
                 Text(text = "${work.priceWork} р * $textAreaMetreCustom = ${calculation(work)} р")
+            }
+            IconButton(onClick = { clickDeleteWork(work) }) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Удалить работу"
+                )
             }
         }
     }
@@ -321,9 +380,9 @@ fun PointWorkItem(
 
 @Composable
 fun Check(
-    listCost: List<CostItem>,
-    onAddCost: (String, Int) -> Unit,
-    onTotalCost: () -> Int,
+    listSupplies: List<Supplies>,
+    onAddSupplies: (Supplies) -> Unit,
+    clickDeleteSupplies: (Supplies) -> Unit,
 ) {
     var nameInput by remember { mutableStateOf("") }
     var priceInput by remember { mutableStateOf("") }
@@ -335,8 +394,16 @@ fun Check(
         verticalArrangement = Arrangement.Center,
     ) {
         Text("Расходники:", Modifier.fillMaxWidth())
-        listCost.forEach { item ->
-            Text("${item.name}: ${item.prise} ₽")
+        listSupplies.forEach { item ->
+            Row() {
+                Text("${item.name}: ${item.price} ₽")
+                IconButton(onClick = { clickDeleteSupplies(item) }) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Удалить"
+                    )
+                }
+            }
         }
     }
     Row(
@@ -374,113 +441,12 @@ fun Check(
     Button(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp), onClick = {
-            onAddCost(nameInput, priceInput.toInt())
+            .padding(8.dp), onClick = {
+            onAddSupplies(Supplies(name = nameInput, price = priceInput.toInt()))
             nameInput = ""
             priceInput = ""
         }) {
         Text("Добавить чек")
 
     }
-    Text(
-        "Сумма по расходникам :${onTotalCost.invoke()} "
-    )
-
-
 }
-
-@Composable
-fun CustomOutlinedBasicTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    width: Dp = 30.dp,
-    height: Dp = 30.dp,
-    labelPadding: PaddingValues = PaddingValues(bottom = 4.dp),
-) {
-    var isFocused by remember { mutableStateOf(false) }
-    Column(modifier = modifier.width(width)) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(labelPadding),
-            fontSize = 14.sp,
-            color = if (isFocused) Color(0xFF6200EE) else Color.Gray
-        )
-        Box(
-            modifier = Modifier
-                .height(height)
-                .border(
-                    width = if (isFocused) 2.dp else 1.dp,
-                    color = if (isFocused) Color(0xFF6200EE) else Color.Gray,
-                    shape = RoundedCornerShape(4.dp)
-                )
-                .padding(horizontal = 8.dp, vertical = 12.dp)
-                .onFocusChanged { focusState ->
-                    isFocused = focusState.isFocused
-                },
-        ) {
-            BasicTextField(
-                value = value,
-                onValueChange = {},
-                singleLine = true,
-                modifier = Modifier.fillMaxSize(),
-                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black)
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AreaSelector() {
-    var selectedOption by remember { mutableStateOf("square") } // "square", "meter", "custom"
-    var customInput by remember { mutableStateOf("") }
-
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(
-                selected = selectedOption == "square",
-                onClick = { selectedOption = "square" }
-            )
-            Text("Квадратура")
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(
-                selected = selectedOption == "meter",
-                onClick = { selectedOption = "meter" }
-            )
-            Text("Метраж")
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(
-                selected = selectedOption == "custom",
-                onClick = { selectedOption = "custom" }
-            )
-            Text("Другое")
-        }
-
-        if (selectedOption == "custom") {
-            OutlinedTextField(
-                value = customInput,
-                onValueChange = { customInput = it },
-                label = { Text("Введите свой вариант") }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            "Выбрано: ${
-                when (selectedOption) {
-                    "square" -> "Квадратура"
-                    "meter" -> "Метраж"
-                    "custom" -> customInput.ifBlank { "Нет ввода" }
-                    else -> ""
-                }
-            }")
-    }
-}
-
-
-

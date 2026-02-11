@@ -358,8 +358,8 @@ fun MaterialItem(
     onRemoveMaterial: (Material) -> Unit,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(2.dp))
+        modifier = modifier
+            .fillMaxWidth()
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .border(2.dp,MaterialTheme.colorScheme.onPrimaryFixed,
                 RoundedCornerShape(10.dp)),

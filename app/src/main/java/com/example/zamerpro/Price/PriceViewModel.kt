@@ -138,6 +138,7 @@ class PriceViewModel(
                     }
                 )
                 Log.i("PriceHouse", "создана работа")
+                Log.i("PriceHouse", "${listWorksInHouse.value}")
                 addWorkToHouse(id.toInt())
             } else {
                 workDao.updateWork(
@@ -157,10 +158,10 @@ class PriceViewModel(
 
         viewModelScope.launch {
             currentHouse.value?.let { house ->
-                val updatedList = house.listMaterial.toMutableList()
+                val updatedList = house.listWork.toMutableList()
                 updatedList.add(idWork)
                 Log.i("PriceHouse", "добавлена работа с id $idWork")
-                val updatedHouse = house.copy(listMaterial = updatedList.toList())
+                val updatedHouse = house.copy(listWork = updatedList.toList())
                 houseDao.updateHouse(updatedHouse)
             }
         }

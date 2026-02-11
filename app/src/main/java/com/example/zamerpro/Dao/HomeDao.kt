@@ -21,7 +21,7 @@ interface HomeDao {
     @Query("SELECT * FROM houses WHERE id = :houseId")
     suspend fun getHouseByIdSuspend(houseId: String): House? // Для однократного получения
 
-    @Update(onConflict = OnConflictStrategy.IGNORE )
+    @Update
     suspend fun updateHouse(house: House)
 
     @Delete

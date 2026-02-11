@@ -62,11 +62,14 @@ class PriceViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     private val _editorState = mutableStateOf(PriceEditorState())
     val editorState: State<PriceEditorState> get() = _editorState
+
     fun deleteSupplies(supplies: Supplies) {
         val house = currentHouse.value ?: return
         viewModelScope.launch {
             val newHouse = house.copy(
-                listSupplies = house.listSupplies.filter { it.id != supplies.id })
+                listSupplies = house.listSupplies.filter {
+                    Log.i("PriceViewModel","${it.id}    ${supplies.id}")
+                    it.id != supplies.id })
             houseDao.updateHouse(newHouse)
 
         }

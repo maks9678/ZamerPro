@@ -51,6 +51,7 @@ import com.example.zamerpro.home.previewHouse
 import com.example.zamerpro.materials.DialogMode
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -199,20 +200,20 @@ fun WorkScreenInternal(
                                 onValueChange = {
                                     updateCustomWork(it.toIntOrNull() ?: 0)
                                 },
-                                label = { Text("свое число") }
+                                label = { Text("Свое число") }
                             )
                         }
 
                         Multiplicand.SQUARE -> {
                             Text(
-                                text = currentHouse.totalWallArea.toString(),
+                                text = "Квадратура : ${currentHouse.totalWallArea}",
                                 style = MaterialTheme.typography.labelMedium
                             )
                         }
 
                         Multiplicand.METRE -> {
                             Text(
-                                currentHouse.totalWindowMetre.toString(),
+                                "Метраж : ${ currentHouse.totalWindowMetre }",
                                 style = MaterialTheme.typography.labelMedium
                             )
                         }
@@ -224,11 +225,16 @@ fun WorkScreenInternal(
                     ) {
                         Multiplicand.entries.forEach { option ->
                             Column(Modifier.clickable { updateMultiplicandWork(option) }) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Top ){
                                 RadioButton(
                                     selected = editorState.areaMetreCustom == option,
                                     onClick = { updateMultiplicandWork(option) }
                                 )
+                                    Text(text = "${option.displayName}")
                             }
+                            }
+
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -237,7 +243,8 @@ fun WorkScreenInternal(
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement =Arrangement.spacedBy(4.dp)
                     ) {
                         items(listAllWork.filter { it.idWork !in currentHouse.listWork }) { item ->
                             Button(
@@ -288,7 +295,10 @@ fun WorkScreenInternal(
                 Text("Виды работ:")
             }
             items(listWorksInHouse) { work ->
-                PointWorkItem(work, currentHouse, calculation, deleteWork)
+                PointWorkItem(work, currentHouse, calculation, {
+                    addEdit = DialogMode.EDIT
+                    isShowAddWork = true
+                }, startEditPrice, deleteWork)
             }
             item {
                 Button(
@@ -326,6 +336,8 @@ fun PreviewPointWorkItem() {
         Work(name = "dsgsd", priceWork = 12, areaMetreCustom = Multiplicand.METRE),
         house = House(name = "adfsas"),
         { 12 },
+        {},
+        {},
         {}
     )
 }
@@ -335,14 +347,18 @@ fun PointWorkItem(
     work: Work,
     house: House,
     calculation: (Work) -> Int,
+    startEditPrice: () -> Unit,
+    clickEditWork: (Work) -> Unit,
     clickDeleteWork: (Work) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.primary,
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(2.dp,MaterialTheme.colorScheme.secondaryContainer),
-        modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondaryContainer),
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier
@@ -364,6 +380,16 @@ fun PointWorkItem(
                     else -> "${work.customMultiplicand}"
                 }
                 Text(text = "${work.priceWork} р * $textAreaMetreCustom = ${calculation(work)} р")
+            }
+            IconButton(
+                modifier = Modifier.size(40.dp),
+                onClick = { startEditPrice()
+                    clickEditWork(work) }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Create,
+                    contentDescription = "Редактировать работу"
+                )
             }
             IconButton(
                 modifier = Modifier.size(40.dp),
@@ -392,24 +418,38 @@ fun Check(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Расходники:", Modifier.fillMaxWidth(),
-        textAlign = TextAlign.Center)
+        Text(
+            "Расходники:", Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
 
         listSupplies.forEach { item ->
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .background(MaterialTheme.colorScheme.secondaryContainer),
-                verticalAlignment = Alignment.CenterVertically)
-            {
-                Text(modifier = Modifier.weight(1f),
-                    text = "${item.name}: ${item.price} ₽")
-                IconButton(modifier = Modifier.size(40.dp),
-                    onClick = { clickDeleteSupplies(item) }) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Удалить"
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondaryContainer),
+                color = MaterialTheme.colorScheme.primary
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                )
+                {
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = "${item.name}: ${item.price} ₽"
                     )
+                    IconButton(
+                        modifier = Modifier.size(40.dp),
+                        onClick = { clickDeleteSupplies(item) }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Удалить"
+                        )
+                    }
                 }
             }
         }

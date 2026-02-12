@@ -1,6 +1,10 @@
 package com.example.zamerpro.Price
 
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Scaffold
 import android.app.Application
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,7 +31,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,7 +59,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 
 const val PRICE_SCREEN_ROUTE = "priceScreen"
 
@@ -156,6 +161,8 @@ fun WorkScreenInternal(
     var isShowAddWork by remember { mutableStateOf(false) }
     var addEdit by remember { mutableStateOf(DialogMode.ADD) }
     val sumSupplies = currentHouse.listSupplies.sumOf { it.price }
+    val scaffoldState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     @Composable
     fun WorkDialog(
@@ -213,7 +220,7 @@ fun WorkScreenInternal(
 
                         Multiplicand.METRE -> {
                             Text(
-                                "Метраж : ${ currentHouse.totalWindowMetre }",
+                                "Метраж : ${currentHouse.totalWindowMetre}",
                                 style = MaterialTheme.typography.labelMedium
                             )
                         }
@@ -225,14 +232,16 @@ fun WorkScreenInternal(
                     ) {
                         Multiplicand.entries.forEach { option ->
                             Column(Modifier.clickable { updateMultiplicandWork(option) }) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Top ){
-                                RadioButton(
-                                    selected = editorState.areaMetreCustom == option,
-                                    onClick = { updateMultiplicandWork(option) }
-                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Top
+                                ) {
+                                    RadioButton(
+                                        selected = editorState.areaMetreCustom == option,
+                                        onClick = { updateMultiplicandWork(option) }
+                                    )
                                     Text(text = "${option.displayName}")
-                            }
+                                }
                             }
 
                         }
@@ -244,7 +253,7 @@ fun WorkScreenInternal(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
-                        horizontalArrangement =Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         items(listAllWork.filter { it.idWork !in currentHouse.listWork }) { item ->
                             Button(
@@ -282,7 +291,9 @@ fun WorkScreenInternal(
             }
         )
     }
-    Scaffold { paddingValues ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(scaffoldState) }
+    ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -312,6 +323,7 @@ fun WorkScreenInternal(
             item {
                 Check(
                     currentHouse.listSupplies,
+                    scaffoldState = scaffoldState,
                     addSupplies,
                     deleteSupplies,
                 )
@@ -383,8 +395,10 @@ fun PointWorkItem(
             }
             IconButton(
                 modifier = Modifier.size(40.dp),
-                onClick = { startEditPrice()
-                    clickEditWork(work) }
+                onClick = {
+                    startEditPrice()
+                    clickEditWork(work)
+                }
             ) {
                 Icon(
                     imageVector = Icons.Default.Create,
@@ -406,9 +420,11 @@ fun PointWorkItem(
 @Composable
 fun Check(
     listSupplies: List<Supplies>,
+    scaffoldState: SnackbarHostState,
     onAddSupplies: (Supplies) -> Unit,
     clickDeleteSupplies: (Supplies) -> Unit,
 ) {
+    val coroutineScope = rememberCoroutineScope()
     var nameInput by remember { mutableStateOf("") }
     var priceInput by remember { mutableStateOf("") }
     Column(
@@ -485,12 +501,23 @@ fun Check(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
     }
-
+    val context = LocalContext.current
     Button(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp), onClick = {
-            onAddSupplies(Supplies(name = nameInput, price = priceInput.toInt()))
+            if (nameInput.isNotEmpty() && priceInput.isNotEmpty()) {
+                onAddSupplies(Supplies(name = nameInput, price = priceInput.toInt()))
+            } else {
+                coroutineScope.launch {
+                    scaffoldState.showSnackbar("Заполните все поля")
+                }
+                /*Toast.makeText(
+                    context,
+                    "Заполните название и цену",
+                    Toast.LENGTH_SHORT
+                ).show()*/
+            }
             nameInput = ""
             priceInput = ""
         }) {

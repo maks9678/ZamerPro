@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.zamerpro"
-        minSdk = 24
+        minSdk = 25
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.material)
     implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.compose.material3)
     val room_version = "2.8.0" // Используйте актуальную версию
     implementation ("androidx.room:room-runtime:$room_version")
     kapt ("androidx.room:room-compiler:$room_version")

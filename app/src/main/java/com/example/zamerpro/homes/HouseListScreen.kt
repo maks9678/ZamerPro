@@ -172,9 +172,13 @@ fun HousesListScreen(
         onShowDialogChange = { viewModel.onShowDialogChange(it) },
         onConfirmNewHouse = {
             if (newHouseName.isNotBlank()) {
-                viewModel.createNewHouse(newHouseName) { houseId ->
-                    navController.navigate("$HOUSE_SCREEN_ROUTE/$houseId")
-                }
+                viewModel.createNewHouse(
+                    newHouseName,
+                    { houseId ->
+                        navController.navigate("$HOUSE_SCREEN_ROUTE/$houseId")
+                    },
+                    {}
+                )
                 newHouseName = ""
             }
         },
@@ -198,7 +202,7 @@ fun HousesListScreenInternal(
     onConfirmNewHouse: () -> Unit,
     onDeleteHouse: (House) -> Unit,
     onHouseClick: (House) -> Unit,
-    onNewHouseCreate:()->Unit,
+    onNewHouseCreate: () -> Unit,
 ) {
     Scaffold(
         modifier,
@@ -214,39 +218,39 @@ fun HousesListScreenInternal(
             )
         },
     ) { paddingValues ->
-        Box(modifier.fillMaxSize()){
-        Column(
-            modifier = modifier
-                .padding(paddingValues)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Контент экрана (список домов или текст)
-            if (houses.isEmpty()) {
-                Text(
-                    modifier = Modifier.padding(16.dp),
-                    textAlign = TextAlign.Center,
-                    text = "У вас пока нет объектов. Нажмите '+' для создания."
-                )
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(16.dp), // Добавляем отступ снизу, чтобы FAB не перекрывал последний элемент
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                )
-                {
-                    items(houses, key = { it.id }) { house ->
-                        HouseListItem(
-                            house = house,
-                            onClick = { onHouseClick(house) },
-                            onDelete = { onDeleteHouse(house) }
-                        )
+        Box(modifier.fillMaxSize()) {
+            Column(
+                modifier = modifier
+                    .padding(paddingValues)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Контент экрана (список домов или текст)
+                if (houses.isEmpty()) {
+                    Text(
+                        modifier = Modifier.padding(16.dp),
+                        textAlign = TextAlign.Center,
+                        text = "У вас пока нет объектов. Нажмите '+' для создания."
+                    )
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        contentPadding = PaddingValues(16.dp), // Добавляем отступ снизу, чтобы FAB не перекрывал последний элемент
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    )
+                    {
+                        items(houses, key = { it.id }) { house ->
+                            HouseListItem(
+                                house = house,
+                                onClick = { onHouseClick(house) },
+                                onDelete = { onDeleteHouse(house) }
+                            )
+                        }
                     }
                 }
             }
-        }
             Button(
                 shape = RoundedCornerShape(28.dp),
                 onClick = { onNewHouseCreate() },
@@ -261,30 +265,31 @@ fun HousesListScreenInternal(
                     fontSize = 24.sp
                 )
             }
-        // Диалог создания остается здесь, он будет показан поверх всего
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = { onShowDialogChange(false) },
-                title = { Text("Новый объект") },
-                text = {
-                    OutlinedTextField(
-                        value = newHouseName,
-                        onValueChange = onNewHouseNameChange,
-                        label = { Text("Название объекта") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
-                    )
-                },
-                confirmButton = {
-                    Button(onClick = onConfirmNewHouse) { Text("Создать") }
-                },
-                dismissButton = {
-                    Button(onClick = { onShowDialogChange(false) }) { Text("Отмена") }
-                }
-            )
+            // Диалог создания остается здесь, он будет показан поверх всего
+            if (showDialog) {
+                AlertDialog(
+                    onDismissRequest = { onShowDialogChange(false) },
+                    title = { Text("Новый объект") },
+                    text = {
+                        OutlinedTextField(
+                            value = newHouseName,
+                            onValueChange = onNewHouseNameChange,
+                            label = { Text("Название объекта") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
+                        )
+                    },
+                    confirmButton = {
+                        Button(onClick = onConfirmNewHouse) { Text("Создать") }
+                    },
+                    dismissButton = {
+                        Button(onClick = { onShowDialogChange(false) }) { Text("Отмена") }
+                    }
+                )
+            }
         }
     }
-}}
+}
 
 @ExperimentalMaterial3Api
 @Composable
@@ -329,10 +334,14 @@ fun HouseListItem(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    Text(text = "Квадратура: ${house.totalWallArea}",
-                        style = MaterialTheme.typography.bodyLarge)
-                    Text(text = "Метраж: ${house.totalWindowMetre}",
-                        style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = "Квадратура: ${house.totalWallArea}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "Метраж: ${house.totalWindowMetre}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                     Text(
                         "Изменен: ${formatTimestamp(house.lastModified)}",
                         style = MaterialTheme.typography.bodySmall
@@ -340,10 +349,13 @@ fun HouseListItem(
 
 
                 }
-                IconButton(onClick = {showDialogDelete = true},
+                IconButton(
+                    onClick = { showDialogDelete = true },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.error )) {
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
                     Icon(
                         Icons.Filled.Delete,
                         contentDescription = "Удалить объект",

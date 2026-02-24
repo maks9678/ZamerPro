@@ -15,6 +15,7 @@ import com.example.zamerpro.materials.MaterialsViewModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.android.parcel.Parcelize
+import kotlinx.parcelize.IgnoredOnParcel
 import java.util.UUID
 
 data class Supplies(        //расходники
@@ -128,7 +129,14 @@ data class Room(
     val wallArea: Double,// Площадь СТЕН (для обоев): floorPerimeter * height
     val floorArea: Double,// Площадь ПОЛА: width * length
     val countingWindows: Int,
-) : Parcelable
+) : Parcelable{
+    @IgnoredOnParcel
+    val textWindowsMetre: String
+        get() = String.format("%.2f",windowMetre)
+    @IgnoredOnParcel
+    val textArea: String
+        get() = String.format("%.2f",wallArea)
+}
 
 data class RoomWithObjects(
     @Embedded

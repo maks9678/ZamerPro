@@ -231,19 +231,16 @@ fun WorkScreenInternal(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Multiplicand.entries.forEach { option ->
-                            Column(Modifier.clickable { updateMultiplicandWork(option) }) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Top
-                                ) {
-                                    RadioButton(
-                                        selected = editorState.areaMetreCustom == option,
-                                        onClick = { updateMultiplicandWork(option) }
-                                    )
-                                    Text(text = "${option.displayName}")
-                                }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                RadioButton(
+                                    selected = editorState.areaMetreCustom == option,
+                                    onClick = { updateMultiplicandWork(option) }
+                                )
+                                Text(text = "${option.displayName}")
                             }
-
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -369,8 +366,13 @@ fun PointWorkItem(
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondaryContainer),
         modifier = Modifier
+            .clickable {
+            startEditPrice()
+            clickEditWork(work)
+        }
             .padding(horizontal = 16.dp)
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            ,
     ) {
         Row(
             modifier = Modifier
@@ -392,18 +394,6 @@ fun PointWorkItem(
                     else -> "${work.customMultiplicand}"
                 }
                 Text(text = "${work.priceWork} р * $textAreaMetreCustom = ${calculation(work)} р")
-            }
-            IconButton(
-                modifier = Modifier.size(40.dp),
-                onClick = {
-                    startEditPrice()
-                    clickEditWork(work)
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Create,
-                    contentDescription = "Редактировать работу"
-                )
             }
             IconButton(
                 modifier = Modifier.size(40.dp),

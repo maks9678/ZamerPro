@@ -305,7 +305,7 @@ fun HouseListItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(130.dp)
+            .height(120.dp)
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = MaterialTheme.shapes.medium,
@@ -321,7 +321,7 @@ fun HouseListItem(
 
             ) {
             Text(
-                house.name,
+                house.name.uppercase(),//чтоб только первый .replaseFirstChar{it.uppercase()}
                 modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
@@ -342,14 +342,9 @@ fun HouseListItem(
                         text = "Метраж: ${house.totalWindowMetre}",
                         style = MaterialTheme.typography.bodyLarge
                     )
-                    Text(
-                        "Изменен: ${formatTimestamp(house.lastModified)}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-
-
                 }
                 IconButton(
+                    modifier = Modifier.size(30.dp),
                     onClick = { showDialogDelete = true },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -364,6 +359,10 @@ fun HouseListItem(
                     )
                 }
             }
+            Text(
+                "Изменен: ${formatTimestamp(house.lastModified)}",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
         if (showDialogDelete) {
             ModalBottomSheet(

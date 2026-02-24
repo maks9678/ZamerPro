@@ -3,6 +3,7 @@ package com.example.zamerpro.materials
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -186,13 +187,17 @@ fun MaterialsScreenIternal(
     { paddingValues ->
         Column(
             modifier = Modifier
-                .fillMaxSize()
                 .padding(paddingValues)
+                .fillMaxSize()
+                .padding(top = 8.dp)
         ) {
 
             LazyColumn(
-                modifier = Modifier.padding(horizontal = 8.dp).clip(RoundedCornerShape(10.dp)).fillMaxWidth()
-                    .background(color =MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .fillMaxWidth()
+                    .background(color = MaterialTheme.colorScheme.surfaceVariant),
                 contentPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -202,17 +207,31 @@ fun MaterialsScreenIternal(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            ,
+                            .clip(RoundedCornerShape(2.dp)),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Название", modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
-                            style = MaterialTheme.typography.titleMedium)
-                        Text("Расход", modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
-                            style = MaterialTheme.typography.titleMedium)
-                        Text("Кол-во", modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
-                            style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.width(100.dp))
+                        Text(
+                            "Название",
+                            modifier = Modifier
+                                .weight(1f)
+                                .wrapContentWidth(Alignment.CenterHorizontally),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            "Расход",
+                            modifier = Modifier
+                                .weight(0.5f)
+                                .wrapContentWidth(Alignment.CenterHorizontally),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            "Кол-во",
+                            modifier = Modifier
+                                .weight(0.5f)
+                                .wrapContentWidth(Alignment.CenterHorizontally),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.width(30.dp))
                     }
                 }
                 if (calculatedMaterials.isNotEmpty()) {
@@ -361,58 +380,54 @@ fun MaterialItem(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.secondaryContainer)
-            .border(2.dp,MaterialTheme.colorScheme.onPrimaryFixed,
-                RoundedCornerShape(10.dp)),
+            .border(
+                2.dp, MaterialTheme.colorScheme.onPrimaryFixed,
+                RoundedCornerShape(10.dp)
+            )
+            .padding(horizontal = 8.dp)
+            .clickable { onEditMaterialClick(material) },
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
-            text = material.name,
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Text(
-            modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
-            text = material.intake.toString(),
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Text(
-            modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),
-            text = totalMaterial(material).toString(),
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Box(modifier = Modifier.weight(1f)) {
-            Row {
-                IconButton(
-                    onClick = { onEditMaterialClick(material) },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.secondary
-                    )
-                ) {
-                    Icon(
-                        Icons.Filled.Create,
-                        contentDescription = "Редактировать объект",
-                        tint = MaterialTheme.colorScheme.secondary
-
-                    )
-                }
-                IconButton(
-                    onClick = { onRemoveMaterial(material) },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = "Удалить объект",
-                        tint = MaterialTheme.colorScheme.error
-
-                    )
-                }
-            }
+        Row(modifier = Modifier.weight(1f)) {
+            Text(
+                modifier = Modifier
+                    .weight(1f)
+                    .wrapContentWidth(Alignment.CenterHorizontally),
+                text = material.name,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                modifier = Modifier
+                    .weight(0.5f)
+                    .wrapContentWidth(Alignment.CenterHorizontally),
+                text = material.intake.toString(),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                modifier = Modifier
+                    .weight(0.5f)
+                    .wrapContentWidth(Alignment.CenterHorizontally),
+                text = totalMaterial(material).toString(),
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
+        IconButton(
+            modifier = Modifier.size(30.dp),
+            onClick = { onRemoveMaterial(material) },
+            colors = IconButtonDefaults.iconButtonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.error
+            )
+        ) {
+            Icon(
+                Icons.Filled.Delete,
+                contentDescription = "Удалить объект",
+                tint = MaterialTheme.colorScheme.error
+
+            )
+        }
+
     }
 }
 

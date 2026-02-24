@@ -1,5 +1,7 @@
 package com.example.zamerpro.room
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
@@ -51,6 +53,8 @@ class RoomViewModel(
     private val _windows = MutableStateFlow(listOf(ItemDimension()))
     val windows: StateFlow<List<ItemDimension>> = _windows.asStateFlow()
 
+    private val _standardOrCustomWall = MutableStateFlow(VariantCountingWall.STANDARD)
+    val standardOrCustomWall = _standardOrCustomWall.asStateFlow()
     private val _customWalls = MutableStateFlow(listOf(ItemDimension()))
     val customWalls: StateFlow<List<ItemDimension>> = _customWalls.asStateFlow()
 
@@ -77,7 +81,6 @@ class RoomViewModel(
                     val existingRoom = existingData.room
                     _roomName.value = existingRoom.name
 
-                    // ИСПРАВЛЕНО: опечатка heigth -> height
                     _roomHeight.value = existingRoom.height.toString()
                     _roomLength.value = existingRoom.length.toString()
                     _roomWidth.value = existingRoom.width.toString()
@@ -235,8 +238,10 @@ class RoomViewModel(
                 0.0
             }
         }
+        val windowArea =_windows.value.sumOf { itemDimension ->  itemDimension.width.toDouble() * itemDimension.height.toDouble() }
+        val doorArea = _doors.value.sumOf{itemDimension -> itemDimension.width.toDouble()*itemDimension.height.toDouble()}
         val floorArea = width * length
-        val wallArea = (width + length) * 2 * height
+        val wallArea = (width + length) * 2 * height - windowArea - doorArea
         val countingWindows = _windows.value.filter { window ->
             val w = window.width.toDoubleOrNull() ?: 0.0
             val h = window.height.toDoubleOrNull() ?: 0.0
@@ -306,7 +311,6 @@ class RoomViewModel(
         }
     }
 
-    // ✅ Приватная функция для обновления родительского дома
     private suspend fun updateHouseTotals() {
         val rooms = roomDao.getRoomsForHouseSuspend(houseId)
         val totalWallArea = rooms.sumOf { it.wallArea }.toInt()
@@ -342,5 +346,8 @@ class RoomViewModel(
                 }
             }
         }
+    }
+    fun updateVariantCountingWall(variant: VariantCountingWall){
+        _standardOrCustomWall.value = variant
     }
 }

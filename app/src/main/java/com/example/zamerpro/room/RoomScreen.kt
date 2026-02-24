@@ -2,6 +2,7 @@ package com.example.zamerpro.room
 
 import android.app.Application
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,12 +30,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -55,16 +58,23 @@ import kotlinx.coroutines.withContext
 import kotlin.collections.forEachIndexed
 import kotlin.collections.toTypedArray
 
-enum class TypeRoom(val displayName:String){
+enum class TypeRoom(val displayName: String) {
     LIVING_ROOM("Кухня-Гостиная"),
     BEDROOM("Спальня"),
     BATHROOM("Сан.узел"),
     HALLWAY("Коридор"),
 
 }
+
+enum class VariantCountingWall(val nameVariant: String) {
+    STANDARD("Стандартно"),
+    CUSTOM("Постенно")
+}
+
 const val ROOM_INPUT_ROUTE = "roomInput"
 const val NEW_ROOM_RESULT_KEY = "new_room_details"
 const val UPDATED_ROOM_RESULT_KEY = "updated_room_details"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomInputScreenInternal(
@@ -93,6 +103,8 @@ fun RoomInputScreenInternal(
     onRemoveCustomWall: (ItemDimension) -> Unit,
     onCustomWallWidthChange: (Int, String) -> Unit,
     onCustomWallHeightChange: (Int, String) -> Unit,
+    standardOrCustomWall: VariantCountingWall,
+    updateVariantCountingWall: (VariantCountingWall) -> Unit,
     isSaveButtonEnabled: Boolean,
     onSaveClick: () -> Unit
 ) {
@@ -157,35 +169,65 @@ fun RoomInputScreenInternal(
                         Text(
                             text = "Параметры комнаты",
                             style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(bottom = 8.dp)
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            DimensionTextField(
-                                label = "Длина (м)",
-                                value = roomLength,
-                                modifier = Modifier.weight(1f),
-                                onValueChange = onRoomLengthChange, // Используем коллбэк
-                                isError = roomLength.toDoubleOrNull() == null && roomLength.isNotBlank()
-                            )
-                            DimensionTextField(
-                                label = "Ширина (м)",
-                                value = roomWidth,
-                                modifier = Modifier.weight(1f),
-                                onValueChange = onRoomWidthChange, // Используем коллбэк
-                                isError = roomWidth.toDoubleOrNull() == null && roomWidth.isNotBlank()
-                            )
-                            DimensionTextField(
-                                label = "Высота (м)",
-                                value = roomHeight,
-                                modifier = Modifier.weight(1f),
-                                onValueChange = onRoomHeightChange
+                            VariantCountingWall.entries.forEach { variant ->
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                )
+                                {
+                                    RadioButton(
+                                        selected = standardOrCustomWall == variant,
+                                        onClick = { updateVariantCountingWall(variant) }
+                                    )
+                                    Text(text = "${variant.nameVariant}")
+                                }
+                            }
+                        }
+                        if (standardOrCustomWall == VariantCountingWall.STANDARD) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                DimensionTextField(
+                                    label = "Длина (м)",
+                                    value = roomLength,
+                                    modifier = Modifier.weight(1f),
+                                    onValueChange = onRoomLengthChange, // Используем коллбэк
+                                    isError = roomLength.toDoubleOrNull() == null && roomLength.isNotBlank()
+                                )
+                                DimensionTextField(
+                                    label = "Ширина (м)",
+                                    value = roomWidth,
+                                    modifier = Modifier.weight(1f),
+                                    onValueChange = onRoomWidthChange, // Используем коллбэк
+                                    isError = roomWidth.toDoubleOrNull() == null && roomWidth.isNotBlank()
+                                )
+                                DimensionTextField(
+                                    label = "Высота (м)",
+                                    value = roomHeight,
+                                    modifier = Modifier.weight(1f),
+                                    onValueChange = onRoomHeightChange,
+                                    isError = roomHeight.toDoubleOrNull() == null && roomHeight.isNotBlank()
+                                )
+                            }
+                        } else {
+                            DimensionListSection(
+                                title = "Размер стены", items = customWalls,
+                                onAddItem = onAddCustomWall,
+                                onRemoveItem = onRemoveCustomWall,
+                                onItemWidthChange = onCustomWallWidthChange,
+                                onItemHeightChange = onCustomWallHeightChange
                             )
                         }
                     }
+
                 }
             }
 
@@ -207,6 +249,7 @@ fun RoomInputScreenInternal(
                     onItemHeightChange = onWindowHeightChange
                 )
             }
+            if (standardOrCustomWall == VariantCountingWall.STANDARD) {
             item {
                 DimensionListSection(
                     title = "Дополнительные стены", items = customWalls,
@@ -217,8 +260,10 @@ fun RoomInputScreenInternal(
                 )
             }
         }
+        }
     }
 }
+
 @Preview(showBackground = true, name = "RoomInputScreen (Пустое)")
 @Composable
 fun RoomInputScreenEmptyPreview() {
@@ -248,6 +293,8 @@ fun RoomInputScreenEmptyPreview() {
             onRemoveCustomWall = {},
             onCustomWallWidthChange = { _, _ -> },
             onCustomWallHeightChange = { _, _ -> },
+            standardOrCustomWall = VariantCountingWall.STANDARD,
+            updateVariantCountingWall = {},
             isSaveButtonEnabled = true,
             onSaveClick = {}
         )
@@ -283,6 +330,8 @@ fun RoomInputScreenWithDataPreview() {
             onRemoveCustomWall = {},
             onCustomWallWidthChange = { _, _ -> },
             onCustomWallHeightChange = { _, _ -> },
+            standardOrCustomWall = VariantCountingWall.STANDARD,
+            updateVariantCountingWall = {},
             isSaveButtonEnabled = true,
             onSaveClick = {}
         )
@@ -317,8 +366,10 @@ fun RoomInputScreen(
     }
 
     val application = LocalContext.current.applicationContext as Application
-    val viewModel: RoomViewModel = viewModel(factory = RoomViewModelFactory(houseId, roomId, application),
-        viewModelStoreOwner = backStackEntry)
+    val viewModel: RoomViewModel = viewModel(
+        factory = RoomViewModelFactory(houseId, roomId, application),
+        viewModelStoreOwner = backStackEntry
+    )
 
     // 1. Получаем CoroutineScope для асинхронных операций
     val scope = rememberCoroutineScope()
@@ -330,7 +381,7 @@ fun RoomInputScreen(
     val doors by viewModel.doors.collectAsState()
     val windows by viewModel.windows.collectAsState()
     val customWalls by viewModel.customWalls.collectAsState()
-
+    val standardOrCustomWall by viewModel.standardOrCustomWall.collectAsState()
     RoomInputScreenInternal(
         modifier = modifier,
         roomName = roomName,
@@ -344,7 +395,7 @@ fun RoomInputScreen(
         onRoomHeightChange = viewModel::updateRoomHeight,
         onRoomWidthChange = viewModel::updateRoomWidth,
         onRoomLengthChange = viewModel::updateRoomLength,
-        onRoomTypeSelected =viewModel::onRoomTypeSelected,
+        onRoomTypeSelected = viewModel::onRoomTypeSelected,
         onAddDoor = viewModel::addDoor,
         onRemoveDoor = viewModel::removeDoor,
         onDoorWidthChange = viewModel::updateDoorWidth,
@@ -357,6 +408,8 @@ fun RoomInputScreen(
         onRemoveCustomWall = viewModel::removeCustomWall,
         onCustomWallWidthChange = viewModel::updateCustomWallWidth,
         onCustomWallHeightChange = viewModel::updateCustomWallHeight,
+        standardOrCustomWall = standardOrCustomWall,
+        updateVariantCountingWall = viewModel::updateVariantCountingWall,
         isSaveButtonEnabled = true,
         onSaveClick = {
             scope.launch {

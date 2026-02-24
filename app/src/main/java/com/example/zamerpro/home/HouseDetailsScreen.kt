@@ -61,7 +61,7 @@ fun HouseDetailsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(currentHouse?.name ?: "Загрузка...") },
+                title = { Text(currentHouse?.name?.replaceFirstChar{it.uppercase()} ?: "Загрузка...") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,

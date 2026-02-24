@@ -270,12 +270,12 @@ fun RoomInHouseItem(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Площадь стен: ${room.wallArea} м²",
+                    text = "Площадь стен: ${room.textArea} м²",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant // Используйте цвета из темы
                 )
                 Text(
-                    text = "Метраж : ${room.windowMetre} м",
+                    text = "Метраж : ${room.textWindowsMetre} м",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
